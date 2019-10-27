@@ -1,0 +1,11 @@
+[package]
+name = "crypto_election_frontend"
+version = "0.1.0"
+authors = ["Nikita Bibik <osbib2@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+#stdweb = "0.4.20" # Js interop
+yew = "0.9.2"
