@@ -1,3 +1,5 @@
+mod blockchain;
+
 pub trait ElectionDataService {
     fn create_election();
 
@@ -14,8 +16,6 @@ pub trait ElectionDataService {
 
 trait UserLocationService {
     fn submit_location();
-
-
 }
 
 trait LocationDataService {
@@ -24,5 +24,4 @@ trait LocationDataService {
     fn set_region_name();
 
     fn set_coordinates();
-
 }

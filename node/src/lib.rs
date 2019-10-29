@@ -4,7 +4,7 @@
     missing_debug_implementations,
     missing_docs,
     unsafe_code,
-    bare_trait_objects 
+    bare_trait_objects
 )]
 
 #[macro_use]
@@ -14,6 +14,6 @@ extern crate failure;
 #[macro_use]
 extern crate serde_derive;
 
-use exonum_merkledb::Snapshot;
+mod constant;
 
 pub mod service;
