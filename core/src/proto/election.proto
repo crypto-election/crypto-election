@@ -1,1 +1,13 @@
-message Election {}
+syntax = "proto3";
+
+package crypto_election.core;
+
+import "helpers.proto";
+
+message User {
+    exonum.PublicKey pub_key = 1;
+    string username = 2;
+    string email = 3;
+    string phone_number = 4;
+    string pass_code = 5;
+}
