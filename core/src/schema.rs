@@ -124,4 +124,10 @@ where
                     .collect()
             })
     }
+
+    //ToDo: Add filtering only active elections
+
+    //Todo: Add creating new elections
+
+    //ToDo: Add participating in elections
 }
