@@ -1,0 +1,66 @@
+@startuml
+
+set namespaceSeparator ::
+
+package core::model {
+
+    class Participant {
+        + pub_key: PublicKey
+        + name: String
+        + email: String
+        + phone_number: String
+        + pass_code: String
+    }
+
+    class Administration {
+        + pub_key: PublicKey
+        + name: String
+    }
+
+    class Election {
+        + pub_key: PublicKey
+        + name: String
+        + is_opened: bool
+        + start_date: i64
+        + finish_date: i64
+        + options: Vec<ElectionOption>
+    }
+
+    class ElectionOption {
+        + id: i32
+        + title: String
+    }
+
+    package geo {
+        class Polygon {
+            + exterior: LineString
+            + interiors: Vec<LineString>
+        }
+
+        class LineString {
+            + items: Vec<Coordinate>
+        }
+
+        class Coordinate {
+            + x: f64
+            + y: f64
+        }
+    }
+
+    package transactions {
+        class CreateParticipant {
+            + name: String
+            + email: String
+            + phone_number: String
+            + pass_code: String
+        }
+
+        class CreateAdministration {
+            + name: String
+        }
+    }
+}
+
+hide methods
+
+@enduml
