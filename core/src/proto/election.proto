@@ -4,10 +4,66 @@ package crypto_election.core;
 
 import "helpers.proto";
 
-message User {
+message Participant {
     exonum.PublicKey pub_key = 1;
-    string username = 2;
+    string name = 2;
     string email = 3;
     string phone_number = 4;
     string pass_code = 5;
+}
+
+message Administration {
+    exonum.PublicKey pub_key = 1;
+    string name = 2;
+    // ToDo: Add polygons.
+}
+
+message Election {
+    exonum.PublicKey pub_key = 1;
+    string name = 2;
+    bool is_opened = 3;
+    int64 start_date = 4;
+    int64 finish_date = 5;
+    repeated ElectionOption options = 6;
+}
+
+message ElectionOption {
+    int32 id = 1;
+    string title = 2;
+}
+
+message PolygonDef {
+    LineStringDef exterior = 1;
+    repeated LineStringDef interiors = 2;
+}
+
+message LineStringDef {
+    repeated CoordinateDef items = 1;
+}
+
+message CoordinateDef {
+    double x = 1;
+    double y = 2;
+}
+
+message CreateParticipant {
+    string name = 1;
+    string email = 2;
+    string phone_number = 3;
+    string pass_code = 4;
+}
+
+message CreateAdministration {
+    string name = 1;
+}
+
+message IssueElection {
+    string name = 1;
+    int64 start_date = 2;
+    int64 finish_date = 3;
+    repeated string options = 4;
+}
+
+message VecI64Wrap {
+    repeated int64 _0 = 1;
 }

@@ -1,11 +1,6 @@
 //! Backend application for election based on blockchain technologies (such as Exonum, Hyperladger).
 
-#![deny(
-    missing_debug_implementations,
-    missing_docs,
-    unsafe_code,
-    bare_trait_objects
-)]
+#![deny(missing_debug_implementations, unsafe_code, bare_trait_objects)] //    missing_docs,
 
 #[macro_use]
 extern crate exonum_derive;
@@ -14,6 +9,8 @@ extern crate failure;
 #[macro_use]
 extern crate serde_derive;
 
-mod constant;
+extern crate crypto_election_core as core;
 
 pub mod service;
+
+mod constant;
