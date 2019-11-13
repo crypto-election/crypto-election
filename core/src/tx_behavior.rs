@@ -14,6 +14,7 @@ use crate::{
     model::transactions::{CreateAdministration, CreateParticipant},
     schema::ElectionSchema,
 };
+use chrono::{DateTime, Utc};
 
 #[derive(Debug, Fail)]
 #[repr(u8)]
@@ -118,8 +119,8 @@ impl Transaction for CreateAdministration {
 impl IssueElection {
     pub fn sign(
         name: &str,
-        start_date: &i64,
-        finish_date: &i64,
+        start_date: &DateTime<Utc>,
+        finish_date: &DateTime<Utc>,
         options: Vec<String>,
         pk: &PublicKey,
         sk: &SecretKey,
@@ -127,8 +128,8 @@ impl IssueElection {
         Message::sign_transaction(
             Self {
                 name: name.to_owned(),
-                start_date: *start_date,
-                finish_date: *finish_date,
+                start_date: start_date.clone(),
+                finish_date: finish_date.clone(),
                 options: options.clone(),
             },
             constant::BLOCKCHAIN_SERVICE_ID,

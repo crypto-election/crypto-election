@@ -469,10 +469,12 @@ dependencies = [
 name = "crypto-election-core"
 version = "0.1.0"
 dependencies = [
+ "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "exonum 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "exonum-build 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "exonum-derive 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "exonum-merkledb 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "exonum-time 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "protobuf 2.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -801,6 +803,23 @@ dependencies = [
  "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_urlencoded 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "exonum-time"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "exonum 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "exonum-build 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "exonum-derive 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "exonum-merkledb 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protobuf 2.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2982,6 +3001,7 @@ dependencies = [
 "checksum exonum-derive 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "51142401c3e85adf64883025b4df764f06cd6a07583f5c56fc8f201ce4d39cf6"
 "checksum exonum-merkledb 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f0ebdd218ae26fc7cadbccf19cd87f7f782a6b6fd79ef10058019665c25cae7a"
 "checksum exonum-testkit 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a19b6776de11ca5982df595525a51da6a9afed5ed4c19e2ed5b8e89c3b953ed7"
+"checksum exonum-time 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "276c2d5e593dbc2e6f4c54e952d3cfdddd9907d5c860deb4534bf5f4c72140af"
 "checksum exonum_libsodium-sys 0.0.22 (registry+https://github.com/rust-lang/crates.io-index)" = "89b95bf6b9b7d0061c3d5f792939cdc32224f6ea5eb25e9208704083a7a85cd5"
 "checksum exonum_sodiumoxide 0.0.22 (registry+https://github.com/rust-lang/crates.io-index)" = "2bf639f91c4cc618ee270f37551a0218d042969ea3d094f7da26d9ee5627270e"
 "checksum failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "f8273f13c977665c5db7eb2b99ae520952fe5ac831ae4cd09d80c4c7042b5ed9"

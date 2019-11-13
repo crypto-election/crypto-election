@@ -3,6 +3,7 @@ syntax = "proto3";
 package crypto_election.core;
 
 import "helpers.proto";
+import "google/protobuf/timestamp.proto";
 
 message Participant {
     exonum.PublicKey pub_key = 1;
@@ -22,8 +23,8 @@ message Election {
     exonum.PublicKey pub_key = 1;
     string name = 2;
     bool is_opened = 3;
-    int64 start_date = 4;
-    int64 finish_date = 5;
+    google.protobuf.Timestamp start_date = 4;
+    google.protobuf.Timestamp finish_date = 5;
     repeated ElectionOption options = 6;
 }
 
@@ -59,8 +60,8 @@ message CreateAdministration {
 
 message IssueElection {
     string name = 1;
-    int64 start_date = 2;
-    int64 finish_date = 3;
+    google.protobuf.Timestamp start_date = 2;
+    google.protobuf.Timestamp finish_date = 3;
     repeated string options = 4;
 }
 

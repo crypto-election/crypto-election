@@ -4,6 +4,7 @@ use crate::proto;
 
 use exonum::crypto::PublicKey;
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
@@ -57,8 +58,8 @@ pub struct Election {
     pub pub_key: PublicKey,
     pub name: String,
     pub is_opened: bool,
-    pub start_date: i64,
-    pub finish_date: i64,
+    pub start_date: DateTime<Utc>,
+    pub finish_date: DateTime<Utc>,
     pub options: Vec<ElectionOption>,
 }
 
@@ -73,6 +74,7 @@ pub mod transactions {
 
     use crate::proto;
 
+    use chrono::{DateTime, Utc};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
@@ -94,8 +96,8 @@ pub mod transactions {
     #[exonum(pb = "proto::IssueElection")]
     pub struct IssueElection {
         pub name: String,
-        pub start_date: i64,
-        pub finish_date: i64,
+        pub start_date: DateTime<Utc>,
+        pub finish_date: DateTime<Utc>,
         pub options: Vec<String>,
     }
 }
