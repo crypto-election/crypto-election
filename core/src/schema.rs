@@ -3,11 +3,10 @@ use exonum_merkledb::{
 };
 
 use exonum::crypto::{Hash, PublicKey};
+use exonum_time::schema::TimeSchema;
 
 use crate::{constant::BLOCKCHAIN_SERVICE_NAME as SERVICE_NAME, model::*};
-use std::hash::Hasher;
-use std::iter::Filter;
-use std::{borrow::Cow, mem};
+use std::mem;
 
 #[derive(Debug)]
 pub struct ElectionSchema<T> {
@@ -110,18 +109,15 @@ where
         ProofMapIndex::new(format!("{}.elections", SERVICE_NAME), self.access.clone())
     }
 
-    pub fn elections_of_administration(
+    fn elections_of_administration(
         &self,
         administration_pub_key: &PublicKey,
-    ) -> Option<Vec<Election>> {
+    ) -> Option<impl Iterator<Item = Election>> {
         self.election_ids_of_administrations()
             .get(administration_pub_key)
-            .and_then(|ids| {
-                ids._0
-                    .iter()
-                    .map(|id| self.elections().get(id))
-                    .filter(|el| el.is_some())
-                    .collect()
+            .map(|ids| {
+                let elections = self.elections();
+                ids.into_iter().filter_map(move |id| elections.get(&id))
             })
     }
 

@@ -181,3 +181,12 @@ impl Into<Vec<i64>> for VecI64Wrap {
         self._0.clone()
     }
 }
+
+impl IntoIterator for VecI64Wrap {
+    type Item = i64;
+    type IntoIter = ::std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self._0.into_iter()
+    }
+}
