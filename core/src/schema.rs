@@ -121,7 +121,22 @@ where
             })
     }
 
-    //ToDo: Add filtering only active elections
+    pub fn active_elections(&self, administration_pub_key: &PublicKey) -> Option<Vec<Election>> {
+        self.elections_of_administration(administration_pub_key)
+            .map(|elections| {
+                let now = TimeSchema::new(self.access.clone())
+                    .time()
+                    .get()
+                    .expect("can not get time");
+                elections
+                    .filter(|election| {
+                        election.is_opened
+                            && election.start_date <= now
+                            && election.finish_date >= now
+                    })
+                    .collect()
+            })
+    }
 
     //Todo: Add creating new elections
 
