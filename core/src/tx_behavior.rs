@@ -23,6 +23,8 @@ pub enum Error {
     ParticipantAlreadyExists = 1,
     #[fail(display = "Administration already exists")]
     AdministrationAlreadyExists = 2,
+    #[fail(display = "Unable to find participant")]
+    ParticipantNotFound = 3,
 }
 
 impl From<Error> for ExecutionError {

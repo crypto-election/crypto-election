@@ -13,4 +13,4 @@ extern crate crypto_election_core as core;
 
 pub mod service;
 
-mod constant;
+pub mod api;

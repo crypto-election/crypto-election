@@ -1,13 +1,19 @@
-use core::constant;
+use crate::api;
 
 use exonum::{
     blockchain::{self, Transaction, TransactionSet},
     crypto::Hash,
+    helpers::fabric::{self, Context},
     messages::RawTransaction,
 };
 
-use core::schema::ElectionSchema;
+use core::{
+    constant,
+    schema::ElectionSchema,
+    tx_behavior::{self, ElectionTransactions},
+};
 
+use exonum::api::ServiceApiBuilder;
 use exonum_merkledb::Snapshot;
 
 pub trait ElectionDataService {
@@ -54,6 +60,23 @@ impl blockchain::Service for Service {
     }
 
     fn tx_from_raw(&self, raw: RawTransaction) -> Result<Box<dyn Transaction>, failure::Error> {
-        unimplemented!()
+        ElectionTransactions::tx_from_raw(raw).map(Into::into)
+    }
+
+    fn wire_api(&self, builder: &mut ServiceApiBuilder) {
+        api::PublicApi::wire(builder);
+    }
+}
+
+#[derive(Debug)]
+pub struct ServiceFactory;
+
+impl fabric::ServiceFactory for ServiceFactory {
+    fn service_name(&self) -> &str {
+        core::constant::BLOCKCHAIN_SERVICE_NAME
+    }
+
+    fn make_service(&mut self, _: &Context) -> Box<dyn blockchain::Service> {
+        Box::new(Service)
     }
 }
