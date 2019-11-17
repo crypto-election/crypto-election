@@ -16,6 +16,7 @@ message Participant {
 message Administration {
     exonum.PublicKey pub_key = 1;
     string name = 2;
+    exonum.PublicKey principal_key = 3;
     // ToDo: Add polygons.
 }
 

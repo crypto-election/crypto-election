@@ -36,18 +36,20 @@ impl Participant {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::Participant")]
+#[exonum(pb = "proto::Administration")]
 pub struct Administration {
     pub pub_key: PublicKey,
     pub name: String,
+    pub principal_key: Option<PublicKey>,
     //pub coordinates: Polygon<f32>,
 }
 
 impl Administration {
-    pub fn new(&pub_key: &PublicKey, name: &str) -> Self {
+    pub fn new(&pub_key: &PublicKey, name: &str, principal_key: &Option<PublicKey>) -> Self {
         Self {
             pub_key,
             name: name.to_owned(),
+            principal_key: principal_key.clone(),
         }
     }
 }
@@ -99,6 +101,11 @@ pub mod transactions {
         pub start_date: DateTime<Utc>,
         pub finish_date: DateTime<Utc>,
         pub options: Vec<String>,
+    }
+
+    pub struct Vote {
+        pub election_id: i64,
+        pub position_id: i8,
     }
 }
 
