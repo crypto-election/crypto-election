@@ -16,12 +16,12 @@ message Participant {
 message Administration {
     exonum.PublicKey pub_key = 1;
     string name = 2;
-    exonum.PublicKey principal_key = 3;
+    OptionalPubKey principal_key = 3;
     // ToDo: Add polygons.
 }
 
 message Election {
-    exonum.PublicKey pub_key = 1;
+    int64 id = 1;
     string name = 2;
     bool is_opened = 3;
     google.protobuf.Timestamp start_date = 4;
@@ -55,8 +55,14 @@ message CreateParticipant {
     string pass_code = 4;
 }
 
+message OptionalPubKey {
+    bool has_value = 1;
+    exonum.PublicKey value = 2;
+}
+
 message CreateAdministration {
     string name = 1;
+    OptionalPubKey principal_key = 2;
 }
 
 message IssueElection {
