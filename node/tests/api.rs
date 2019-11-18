@@ -25,6 +25,7 @@ use serde_json::json;
 
 mod constant;
 use constant::*;
+use crypto_election_node::api::{AdministrationInfo, AdministrationQuery};
 
 #[test]
 fn create_participant() {
@@ -51,7 +52,19 @@ fn create_participant() {
 }
 
 #[test]
-fn create_administration() {}
+fn create_administration() {
+    let (mut testkit, api) = create_testkit();
+
+    let (tx, _) = api.create_administration(administration1::NAME, &None);
+
+    testkit.create_block();
+
+    api.assert_tx_status(tx.hash(), &json!({"type": "success"}));
+
+    let administration = api.get_administration(tx.author()).unwrap();
+
+    assert_eq!(administration.name, administration1::NAME);
+}
 
 #[test]
 fn test_election() {
@@ -68,6 +81,9 @@ fn test_election() {
         participant2::PHONE_NUMBER,
         participant2::PASS_CODE,
     );
+
+    let (tx_administration, key_administration) =
+        api.create_administration(administration1::NAME, &None);
 
     testkit.create_block();
 
@@ -92,9 +108,13 @@ impl ElectionApi {
         (tx, key)
     }
 
-    fn create_administration(&self, name: &str) -> (Signed<RawTransaction>, SecretKey) {
+    fn create_administration(
+        &self,
+        name: &str,
+        principal: &Option<PublicKey>,
+    ) -> (Signed<RawTransaction>, SecretKey) {
         let (pubkey, key) = gen_keypair();
-        let tx = CreateAdministration::sign(name, &pubkey, &key);
+        let tx = CreateAdministration::sign(name, &principal, &pubkey, &key);
         self.assert_tx_hash(&tx);
         (tx, key)
     }
@@ -144,6 +164,27 @@ impl ElectionApi {
             .find(|(&key, _)| key == pub_key)?;
 
         participant.cloned()
+    }
+
+    fn get_administration(&self, pub_key: PublicKey) -> Option<Administration> {
+        let administration_info = self
+            .inner
+            .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
+            .query(&AdministrationQuery { pub_key })
+            .get::<AdministrationInfo>("v1/administrations/info")
+            .unwrap();
+
+        let to_administration = administration_info
+            .administration_proof
+            .to_administration
+            .check()
+            .unwrap();
+
+        let (_, administration) = to_administration
+            .all_entries()
+            .find(|(&key, _)| key == pub_key)?;
+
+        administration.cloned()
     }
 }
 
