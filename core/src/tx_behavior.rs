@@ -90,10 +90,16 @@ impl Transaction for CreateParticipant {
 
 impl CreateAdministration {
     #[doc(hidden)]
-    pub fn sign(name: &str, pk: &PublicKey, sk: &SecretKey) -> Signed<RawTransaction> {
+    pub fn sign(
+        name: &str,
+        principal_key: &Option<PublicKey>,
+        pk: &PublicKey,
+        sk: &SecretKey,
+    ) -> Signed<RawTransaction> {
         Message::sign_transaction(
             Self {
                 name: name.to_owned(),
+                //principal_key: principal_key.clone()
             },
             constant::BLOCKCHAIN_SERVICE_ID,
             *pk,
@@ -110,7 +116,9 @@ impl Transaction for CreateAdministration {
         let mut schema = ElectionSchema::new(context.fork());
 
         if schema.participant(pub_key).is_none() {
-            schema.create_administration(pub_key, &self.name, &hash);
+            schema.create_administration(
+                pub_key, &self.name, /*&self.principal_key*/ &None, &hash,
+            );
             Ok(())
         } else {
             Err(Error::AdministrationAlreadyExists)?
