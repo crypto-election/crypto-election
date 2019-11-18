@@ -25,6 +25,10 @@ pub enum Error {
     AdministrationAlreadyExists = 2,
     #[fail(display = "Unable to find participant")]
     ParticipantNotFound = 3,
+    #[fail(display = "Unable to find administration")]
+    AdministrationNotFound = 4,
+    #[fail(display = "Election finished before start")]
+    ElectionFinishedEarlierStart = 5,
 }
 
 impl From<Error> for ExecutionError {
@@ -151,6 +155,24 @@ impl IssueElection {
 
 impl Transaction for IssueElection {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        let mut schema = ElectionSchema::new(context.fork());
+
+        if schema.administration(&context.author()).is_none() {
+            Err(Error::AdministrationNotFound)?
+        }
+
+        if self.finish_date <= self.start_date {
+            Err(Error::ElectionFinishedEarlierStart)?
+        }
+
+        schema.issue_election(
+            &self.name,
+            &self.start_date,
+            &self.finish_date,
+            &self.options,
+            &context.tx_hash(),
+        );
+
         Ok(())
     }
 }

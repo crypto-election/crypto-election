@@ -57,12 +57,31 @@ impl Administration {
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::Election")]
 pub struct Election {
-    pub pub_key: PublicKey,
+    pub id: i64,
     pub name: String,
     pub is_opened: bool,
     pub start_date: DateTime<Utc>,
     pub finish_date: DateTime<Utc>,
     pub options: Vec<ElectionOption>,
+}
+
+impl Election {
+    pub fn new(
+        id: &i64,
+        name: &str,
+        start_date: &DateTime<Utc>,
+        finish_date: &DateTime<Utc>,
+        options: &Vec<ElectionOption>,
+    ) -> Self {
+        Self {
+            id: *id,
+            name: name.to_owned(),
+            start_date: *start_date,
+            finish_date: *finish_date,
+            options: options.clone(),
+            is_opened: true,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]

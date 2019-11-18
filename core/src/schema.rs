@@ -4,7 +4,9 @@ use exonum::crypto::{Hash, PublicKey};
 use exonum_time::schema::TimeSchema;
 
 use crate::{constant::BLOCKCHAIN_SERVICE_NAME as SERVICE_NAME, model::*};
-use std::mem;
+use chrono::{DateTime, Utc};
+use exonum::proto::ProtobufConvert;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct ElectionSchema<T> {
@@ -103,6 +105,7 @@ where
     }
     //endregion
 
+    //region Elections
     fn election_ids_of_administrations(&self) -> ProofMapIndex<T, PublicKey, VecI64Wrap> {
         ProofMapIndex::new(
             format!("{}.election_ids_of_administrations", SERVICE_NAME),
@@ -110,8 +113,16 @@ where
         )
     }
 
-    fn elections(&self) -> ProofMapIndex<T, i64, Election> {
+    pub fn elections(&self) -> ProofMapIndex<T, i64, Election> {
         ProofMapIndex::new(format!("{}.elections", SERVICE_NAME), self.access.clone())
+    }
+
+    pub fn election_history(&self, id: &i64) -> ProofListIndex<T, Hash> {
+        ProofListIndex::new_in_family(
+            format!("{}.election_history", SERVICE_NAME),
+            id,
+            self.access.clone(),
+        )
     }
 
     fn elections_of_administration(
@@ -143,7 +154,79 @@ where
             })
     }
 
-    //Todo: Add creating new elections
+    pub fn election_votes(&self, election_id: &i64) -> ProofMapIndex<T, PublicKey, i32> {
+        ProofMapIndex::new_in_family(
+            format!("{}.election_votes", SERVICE_NAME),
+            election_id,
+            self.access.clone(),
+        )
+    }
 
-    //ToDo: Add participating in elections
+    pub fn issue_election(
+        &mut self,
+        name: &str,
+        start_date: &DateTime<Utc>,
+        finish_date: &DateTime<Utc>,
+        options: &Vec<String>,
+        transaction: &Hash,
+    ) {
+        let index = self
+            .elections()
+            .keys()
+            .into_iter()
+            .max()
+            .map_or(0, |i| i + 1);
+        let election = {
+            let mut history = self.election_history(&index);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            let mut option_counter = 0;
+            Election::new(
+                &index,
+                name,
+                start_date,
+                finish_date,
+                &(options
+                    .iter()
+                    .map(|n| ElectionOption {
+                        id: {
+                            let cur_idx = option_counter;
+                            option_counter += 1;
+                            cur_idx
+                        },
+                        title: n.to_owned(),
+                    })
+                    .collect()),
+            )
+        };
+        self.elections().put(&index, election);
+    }
+
+    pub fn vote(
+        &mut self,
+        election_id: &i64,
+        participant_key: &PublicKey,
+        option_id: &i32,
+        transaction: &Hash,
+    ) {
+        let mut history = self.election_history(election_id);
+        history.push(*transaction);
+        let history_hash = history.object_hash();
+        self.election_votes(election_id)
+            .put(participant_key, *option_id);
+    }
+
+    pub fn election_results(&self, election_id: &i64) -> Option<HashMap<i32, i32>> {
+        self.elections().get(election_id).map(|e| {
+            let mut sum: HashMap<i32, i32> = e.options.iter().map(|o| (o.id, 0)).collect();
+            self.election_votes(election_id).iter().for_each(|(_, v)| {
+                if let Some(counter) = sum.get_mut(&v) {
+                    *counter += 1;
+                }
+            });
+            sum
+        })
+    }
+
+    //endregoin
 }
