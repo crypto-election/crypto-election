@@ -1,42 +1,17 @@
 use serde::{Deserialize, Serialize};
 
 use exonum::{
-    blockchain::{
-        ExecutionError, ExecutionResult, Transaction, TransactionContext, TransactionSet,
-    },
+    blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey, SecretKey},
     messages::{Message, RawTransaction, Signed},
 };
 
-use crate::model::transactions::IssueElection;
 use crate::{
     constant,
-    model::transactions::{CreateAdministration, CreateParticipant},
+    model::transactions::{CreateAdministration, CreateParticipant, IssueElection},
     schema::ElectionSchema,
 };
 use chrono::{DateTime, Utc};
-
-#[derive(Debug, Fail)]
-#[repr(u8)]
-pub enum Error {
-    #[fail(display = "Participant already exists")]
-    ParticipantAlreadyExists = 1,
-    #[fail(display = "Administration already exists")]
-    AdministrationAlreadyExists = 2,
-    #[fail(display = "Unable to find participant")]
-    ParticipantNotFound = 3,
-    #[fail(display = "Unable to find administration")]
-    AdministrationNotFound = 4,
-    #[fail(display = "Election finished before start")]
-    ElectionFinishedEarlierStart = 5,
-}
-
-impl From<Error> for ExecutionError {
-    fn from(value: Error) -> Self {
-        let description = format!("{}", value);
-        ExecutionError::with_description(value as u8, description)
-    }
-}
 
 #[derive(Serialize, Deserialize, Clone, Debug, TransactionSet)]
 pub enum ElectionTransactions {
@@ -174,5 +149,27 @@ impl Transaction for IssueElection {
         );
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Fail)]
+#[repr(u8)]
+pub enum Error {
+    #[fail(display = "Participant already exists")]
+    ParticipantAlreadyExists = 1,
+    #[fail(display = "Administration already exists")]
+    AdministrationAlreadyExists = 2,
+    #[fail(display = "Unable to find participant")]
+    ParticipantNotFound = 3,
+    #[fail(display = "Unable to find administration")]
+    AdministrationNotFound = 4,
+    #[fail(display = "Election finished before start")]
+    ElectionFinishedEarlierStart = 5,
+}
+
+impl From<Error> for ExecutionError {
+    fn from(value: Error) -> Self {
+        let description = format!("{}", value);
+        ExecutionError::with_description(value as u8, description)
     }
 }
