@@ -4,12 +4,12 @@
 *.DS_Store
 
 # cargo
-target
+target/
 rls
 Cargo.lock
 
 # Exonum artifact folder
-.exonum
+.exonum/
 
 # fuzz testing
 exonum/fuzz/corpus
@@ -20,6 +20,6 @@ node_modules
 npm-debug.log
 
 # IDE files
-.idea
-.vscode
+.idea/
+.vscode/
 *.iml
