@@ -1,6 +1,4 @@
-use exonum_merkledb::{
-    BinaryValue, IndexAccess, ListIndex, ObjectHash, ProofListIndex, ProofMapIndex,
-};
+use exonum_merkledb::{IndexAccess, ListIndex, ObjectHash, ProofListIndex, ProofMapIndex};
 
 use exonum::crypto::{Hash, PublicKey};
 use exonum_time::schema::TimeSchema;
@@ -25,6 +23,7 @@ where
         vec![
             self.participants().object_hash(),
             self.administrations().object_hash(),
+            self.elections().object_hash(),
         ]
     }
 
@@ -87,12 +86,18 @@ where
         )
     }
 
-    pub fn create_administration(&mut self, key: &PublicKey, name: &str, transaction: &Hash) {
+    pub fn create_administration(
+        &mut self,
+        key: &PublicKey,
+        name: &str,
+        principal: &Option<PublicKey>,
+        transaction: &Hash,
+    ) {
         let administration = {
             let mut history = self.administration_history(key);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Administration::new(key, name)
+            Administration::new(key, name, principal)
         };
         self.administrations().put(key, administration);
     }

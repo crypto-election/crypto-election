@@ -40,7 +40,7 @@ impl Participant {
 pub struct Administration {
     pub pub_key: PublicKey,
     pub name: String,
-    pub principal_key: Option<PublicKey>,
+    //    pub principal_key: Option<PublicKey>,
     //pub coordinates: Polygon<f32>,
 }
 
@@ -49,7 +49,7 @@ impl Administration {
         Self {
             pub_key,
             name: name.to_owned(),
-            principal_key: principal_key.clone(),
+            //principal_key: principal_key.clone(),
         }
     }
 }
@@ -76,6 +76,8 @@ pub mod transactions {
 
     use crate::proto;
 
+    use exonum::crypto::PublicKey;
+
     use chrono::{DateTime, Utc};
     use serde::{Deserialize, Serialize};
 
@@ -92,6 +94,7 @@ pub mod transactions {
     #[exonum(pb = "proto::CreateAdministration")]
     pub struct CreateAdministration {
         pub name: String,
+        //        pub principal_key: Option<PublicKey>,
     }
 
     #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
