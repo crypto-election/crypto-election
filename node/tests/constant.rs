@@ -12,4 +12,6 @@ pub mod participant2 {
     pub const PASS_CODE: &str = "AA000001";
 }
 
-pub mod administration1 {}
+pub mod administration1 {
+    pub const NAME: &str = "Administration1";
+}
