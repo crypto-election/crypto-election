@@ -1,12 +1,14 @@
-use exonum_merkledb::{IndexAccess, ListIndex, ObjectHash, ProofListIndex, ProofMapIndex};
+use std::collections::HashMap;
 
-use exonum::crypto::{Hash, PublicKey};
+use chrono::{DateTime, Utc};
+
+use exonum::{
+    crypto::{Hash, PublicKey},
+    exonum_merkledb::{IndexAccess, ObjectHash, ProofListIndex, ProofMapIndex},
+};
 use exonum_time::schema::TimeSchema;
 
 use crate::{constant::BLOCKCHAIN_SERVICE_NAME as SERVICE_NAME, model::*};
-use chrono::{DateTime, Utc};
-use exonum::proto::ProtobufConvert;
-use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct ElectionSchema<T> {
@@ -62,7 +64,15 @@ where
             let mut history = self.participant_history(key);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Participant::new(key, name, email, phone_number, pass_code)
+            Participant::new(
+                key,
+                name,
+                email,
+                phone_number,
+                pass_code,
+                history.len(),
+                &history_hash,
+            )
         };
         self.participants().put(key, participant);
     }
@@ -99,16 +109,36 @@ where
             let mut history = self.administration_history(key);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Administration::new(key, name, principal)
+            Administration::new(key, name, principal, history.len(), &history_hash)
         };
         self.administrations().put(key, administration);
+
+        let election_id_wrapper = {
+            let mut history = self.election_ids_of_administrations_history(key);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            wrappers::VecI64::new(&Vec::new(), history.len(), &history_hash)
+        };
+        self.election_ids_of_administrations()
+            .put(key, election_id_wrapper);
     }
     //endregion
 
     //region Elections
-    fn election_ids_of_administrations(&self) -> ProofMapIndex<T, PublicKey, VecI64Wrap> {
+    fn election_ids_of_administrations(&self) -> ProofMapIndex<T, PublicKey, wrappers::VecI64> {
         ProofMapIndex::new(
             format!("{}.election_ids_of_administrations", SERVICE_NAME),
+            self.access.clone(),
+        )
+    }
+
+    fn election_ids_of_administrations_history(
+        &self,
+        pub_key: &PublicKey,
+    ) -> ProofListIndex<T, Hash> {
+        ProofListIndex::new_in_family(
+            format!("{}.election_ids_of_administrations_history", SERVICE_NAME),
+            pub_key,
             self.access.clone(),
         )
     }
@@ -165,6 +195,7 @@ where
     pub fn issue_election(
         &mut self,
         name: &str,
+        author_key: &PublicKey,
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,
         options: &Vec<String>,
@@ -182,7 +213,8 @@ where
             let history_hash = history.object_hash();
             let mut option_counter = 0;
             Election::new(
-                &index,
+                index,
+                author_key,
                 name,
                 start_date,
                 finish_date,
@@ -197,9 +229,23 @@ where
                         title: n.to_owned(),
                     })
                     .collect()),
+                history.len(),
+                &history_hash,
             )
         };
         self.elections().put(&index, election);
+
+        let mut id_map = self.election_ids_of_administrations();
+        let election_id_collection = {
+            let mut history = self.election_ids_of_administrations_history(author_key);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            id_map
+                .get(author_key)
+                .unwrap()
+                .append(index, history.len(), &history_hash)
+        };
+        id_map.put(author_key, election_id_collection);
     }
 
     pub fn vote(
@@ -216,9 +262,9 @@ where
             .put(participant_key, *option_id);
     }
 
-    pub fn election_results(&self, election_id: &i64) -> Option<HashMap<i32, i32>> {
+    pub fn election_results(&self, election_id: &i64) -> Option<HashMap<i32, u32>> {
         self.elections().get(election_id).map(|e| {
-            let mut sum: HashMap<i32, i32> = e.options.iter().map(|o| (o.id, 0)).collect();
+            let mut sum: HashMap<i32, u32> = e.options.iter().map(|o| (o.id, 0)).collect();
             self.election_votes(election_id).iter().for_each(|(_, v)| {
                 if let Some(counter) = sum.get_mut(&v) {
                     *counter += 1;

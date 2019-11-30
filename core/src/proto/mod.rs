@@ -3,16 +3,12 @@
 pub use self::election::{
     Administration, CoordinateDef, CreateAdministration, CreateParticipant, Election,
     ElectionOption, IssueElection, LineStringDef, OptionalPubKey, Participant, PolygonDef,
-    VecI64Wrap,
+    VecI64Wrap, Vote,
 };
 
 include!(concat!(env!("OUT_DIR"), "/protobuf_mod.rs"));
 
-use exonum::{
-    crypto::PublicKey,
-    proto::{schema::*, ProtobufConvert},
-};
-use failure::Error;
+use exonum::{crypto::PublicKey, proto::schema::*};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]

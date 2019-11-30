@@ -7,11 +7,7 @@ use exonum::{
     messages::RawTransaction,
 };
 
-use core::{
-    constant,
-    schema::ElectionSchema,
-    tx_behavior::{self, ElectionTransactions},
-};
+use core::{constant, schema::ElectionSchema, tx_behavior::ElectionTransactions};
 
 use exonum::api::ServiceApiBuilder;
 use exonum_merkledb::Snapshot;
