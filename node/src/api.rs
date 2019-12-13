@@ -1,6 +1,6 @@
 use core::{
     constant::BLOCKCHAIN_SERVICE_ID,
-    model::{public_api::*, Administration, Election, Participant},
+    model::{public_api::*, Election},
     schema::ElectionSchema,
 };
 
@@ -23,12 +23,12 @@ use std::fmt::Debug;
 pub struct PublicApi;
 
 impl PublicApi {
-    pub fn entity_info<A, DS, K, E, OS, PS, HS>(
+    pub fn entity_info<A, DSC, K, E, PS, OS, HS>(
         master_schema_or_metadata: Either<
             &blockchain::Schema<A>,
             (&BlockProof, &MapProof<Hash, Hash>),
         >,
-        database_schema: &DS,
+        database_schema: &DSC,
         blockchain: &Blockchain,
         object_selector: OS,
         proof_selector: PS,
@@ -38,23 +38,21 @@ impl PublicApi {
         A: IndexAccess,
         K: BinaryKey + ObjectHash + Debug + Clone + Copy,
         E: BinaryValue + ObjectHash + Debug,
-        PS: FnOnce(&DS) -> MapProof<K, E>,
-        OS: FnOnce(&DS) -> Option<E>,
-        HS: FnOnce(&DS) -> ProofListIndex<A, Hash>,
+        OS: FnOnce(&DSC) -> Option<E>,
+        PS: FnOnce(&DSC) -> MapProof<K, E>,
+        HS: FnOnce(&DSC) -> ProofListIndex<A, Hash>,
     {
-        let block_proof = master_schema_or_metadata.either(
+        let (block_proof, to_table) = master_schema_or_metadata.either(
             |master_schema| {
                 let max_height = master_schema.block_hashes_by_height().len() - 1;
-                master_schema
-                    .block_and_precommits(Height(max_height))
-                    .unwrap()
+                (
+                    master_schema
+                        .block_and_precommits(Height(max_height))
+                        .unwrap(),
+                    master_schema.get_proof_to_service_table(BLOCKCHAIN_SERVICE_ID, 0),
+                )
             },
-            |(block_proof, _)| block_proof.clone(),
-        );
-
-        let to_table = master_schema_or_metadata.either(
-            |master_schema| master_schema.get_proof_to_service_table(BLOCKCHAIN_SERVICE_ID, 0),
-            |(_, to_table)| to_table.clone(),
+            |(block_proof, to_table)| (block_proof.clone(), to_table.clone()),
         );
 
         let object_proof = Proof {
@@ -89,7 +87,7 @@ impl PublicApi {
     pub fn participant_info(
         state: &ServiceApiState,
         query: KeyQuery<PublicKey>,
-    ) -> api::Result<Info<PublicKey, Participant>> {
+    ) -> api::Result<ParticipantInfo> {
         let access = state.snapshot();
 
         Ok(Self::entity_info(
@@ -105,7 +103,7 @@ impl PublicApi {
     pub fn administration_info(
         state: &ServiceApiState,
         query: KeyQuery<PublicKey>,
-    ) -> api::Result<Info<PublicKey, Administration>> {
+    ) -> api::Result<AdministrationInfo> {
         let access = state.snapshot();
 
         Ok(Self::entity_info(
@@ -121,7 +119,7 @@ impl PublicApi {
     pub fn election_info(
         state: &ServiceApiState,
         query: KeyQuery<i64>,
-    ) -> api::Result<Info<i64, Election>> {
+    ) -> api::Result<ElectionInfo> {
         let access = state.snapshot();
         Ok(Self::entity_info(
             Left(&blockchain::Schema::new(&access)),
@@ -129,15 +127,15 @@ impl PublicApi {
             state.blockchain(),
             |schema| schema.elections().get(&query.key),
             |schema| schema.elections().get_proof(query.key),
-            |schema| schema.election_history(&query.key),
+            |schema| schema.election_history(query.key),
         ))
     }
 
     pub fn all_elections(state: &ServiceApiState, _: ()) -> api::Result<Vec<Election>> {
-        Ok({
-            let access = state.snapshot();
-            ElectionSchema::new(&access).elections().values().collect()
-        })
+        Ok(ElectionSchema::new(&state.snapshot())
+            .elections()
+            .values()
+            .collect())
     }
 
     pub fn active_elections(
@@ -153,10 +151,8 @@ impl PublicApi {
         state: &ServiceApiState,
         query: KeyQuery<i64>,
     ) -> api::Result<HashMap<i32, u32>> {
-        let snapshot = state.snapshot();
-        let election_schema = ElectionSchema::new(&snapshot);
-        election_schema
-            .election_results(&query.key)
+        ElectionSchema::new(&state.snapshot())
+            .election_results(query.key)
             .ok_or_else(|| api::Error::NotFound("\"Election not found\"".to_owned()))
     }
 

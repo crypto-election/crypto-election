@@ -16,6 +16,10 @@ pub mod administration1 {
     pub const NAME: &str = "Administration1";
 }
 
+pub mod administration2 {
+    pub const NAME: &str = "Administration2";
+}
+
 pub mod election1 {
     pub const NAME: &str = "Choose your favorite color";
     pub const OPTIONS: &[&str] = &["red", "green", "blue"];

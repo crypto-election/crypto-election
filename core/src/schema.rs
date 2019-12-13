@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use time::Duration;
 
 use exonum::{
     crypto::{Hash, PublicKey},
@@ -8,11 +9,39 @@ use exonum::{
 };
 use exonum_time::schema::TimeSchema;
 
+use crate::model::wrappers::OptionalPubKeyWrap;
 use crate::{constant::BLOCKCHAIN_SERVICE_NAME as SERVICE_NAME, model::*};
 
 #[derive(Debug)]
 pub struct ElectionSchema<T> {
     access: T,
+}
+
+#[derive(Debug)]
+struct PrincipalIterator<T>
+where
+    T: IndexAccess,
+{
+    index: ProofMapIndex<T, PublicKey, Administration>,
+    key: Option<PublicKey>,
+}
+
+impl<T> Iterator for PrincipalIterator<T>
+where
+    T: IndexAccess,
+{
+    type Item = Administration;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.key.map(|key| {
+            let principal = self
+                .index
+                .get(&key)
+                .expect("Unable to find administration by public key.");
+            self.key = principal.principal_key.0;
+            principal
+        })
+    }
 }
 
 impl<T> ElectionSchema<T>
@@ -102,7 +131,7 @@ where
         &mut self,
         key: &PublicKey,
         name: &str,
-        principal: &Option<PublicKey>,
+        principal: &OptionalPubKeyWrap,
         transaction: &Hash,
     ) {
         let administration = {
@@ -117,10 +146,29 @@ where
             let mut history = self.election_ids_of_administrations_history(key);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            wrappers::VecI64::new(&Vec::new(), history.len(), &history_hash)
+            wrappers::VecI64::new(&[], history.len(), &history_hash)
         };
         self.election_ids_of_administrations()
             .put(key, election_id_wrapper);
+    }
+
+    pub fn iter_principals(&self, key: &PublicKey) -> Option<impl Iterator<Item = Administration>> {
+        let administrations = self.administrations();
+        administrations.get(key).map(|object| PrincipalIterator {
+            key: object.principal_key.0,
+            index: administrations,
+        })
+    }
+
+    pub fn iter_pprincipals_from_current(
+        &self,
+        key: &PublicKey,
+    ) -> Option<impl Iterator<Item = Administration>> {
+        let administrations = self.administrations();
+        administrations.get(key).map(|_| PrincipalIterator {
+            key: Some(*key),
+            index: administrations,
+        })
     }
     //endregion
 
@@ -147,10 +195,10 @@ where
         ProofMapIndex::new(format!("{}.elections", SERVICE_NAME), self.access.clone())
     }
 
-    pub fn election_history(&self, id: &i64) -> ProofListIndex<T, Hash> {
+    pub fn election_history(&self, id: i64) -> ProofListIndex<T, Hash> {
         ProofListIndex::new_in_family(
             format!("{}.election_history", SERVICE_NAME),
-            id,
+            &id,
             self.access.clone(),
         )
     }
@@ -167,27 +215,59 @@ where
             })
     }
 
-    pub fn active_elections(&self, administration_pub_key: &PublicKey) -> Option<Vec<Election>> {
-        self.elections_of_administration(administration_pub_key)
-            .map(|elections| {
-                let now = TimeSchema::new(self.access.clone())
-                    .time()
-                    .get()
-                    .expect("can not get time");
-                elections
-                    .filter(|election| {
-                        election.is_opened
-                            && election.start_date <= now
-                            && election.finish_date >= now
+    fn get_elections_in_range<'a>(
+        &'a self,
+        administration_pub_key: &'a PublicKey,
+        from: DateTime<Utc>,
+        to: DateTime<Utc>,
+    ) -> Option<impl Iterator<Item = Election> + 'a> {
+        self.iter_pprincipals_from_current(administration_pub_key)
+            .map(move |administrations| {
+                administrations
+                    .flat_map(move |principal| {
+                        self.elections_of_administration(&principal.pub_key)
+                            .expect("Unable to find elections of administration.")
                     })
-                    .collect()
+                    .filter(move |election| {
+                        !election.is_cancelled
+                            && election.start_date <= to
+                            && election.finish_date > from
+                    })
             })
     }
 
-    pub fn election_votes(&self, election_id: &i64) -> ProofMapIndex<T, PublicKey, i32> {
+    pub fn active_elections(&self, administration_pub_key: &PublicKey) -> Option<Vec<Election>> {
+        self.administration(administration_pub_key).map(|_| {
+            let now = TimeSchema::new(self.access.clone())
+                .time()
+                .get()
+                .expect("can not get time");
+
+            self.get_elections_in_range(administration_pub_key, now, now)
+                .unwrap()
+                .collect()
+        })
+    }
+
+    pub fn available_elections(&self, administration_pub_key: &PublicKey) -> Option<Vec<Election>> {
+        self.administration(administration_pub_key).map(|_| {
+            let now = TimeSchema::new(self.access.clone())
+                .time()
+                .get()
+                .expect("can not get time");
+
+            let this_week = now + Duration::weeks(1);
+
+            self.get_elections_in_range(administration_pub_key, now, this_week)
+                .unwrap()
+                .collect()
+        })
+    }
+
+    pub fn election_votes(&self, election_id: i64) -> ProofMapIndex<T, PublicKey, i32> {
         ProofMapIndex::new_in_family(
             format!("{}.election_votes", SERVICE_NAME),
-            election_id,
+            &election_id,
             self.access.clone(),
         )
     }
@@ -198,17 +278,15 @@ where
         author_key: &PublicKey,
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,
-        options: &Vec<String>,
+        options: &[String],
         transaction: &Hash,
-    ) {
-        let index = self
-            .elections()
-            .keys()
-            .into_iter()
-            .max()
-            .map_or(0, |i| i + 1);
+    ) -> i64 {
+        let mut elections = self.elections();
+
+        let index = elections.keys().max().map_or(0, |i| i + 1);
+
         let election = {
-            let mut history = self.election_history(&index);
+            let mut history = self.election_history(index);
             history.push(*transaction);
             let history_hash = history.object_hash();
             let mut option_counter = 0;
@@ -233,7 +311,7 @@ where
                 &history_hash,
             )
         };
-        self.elections().put(&index, election);
+        elections.put(&index, election);
 
         let mut id_map = self.election_ids_of_administrations();
         let election_id_collection = {
@@ -246,24 +324,35 @@ where
                 .append(index, history.len(), &history_hash)
         };
         id_map.put(author_key, election_id_collection);
+
+        index
     }
 
     pub fn vote(
         &mut self,
-        election_id: &i64,
+        election_id: i64,
         participant_key: &PublicKey,
-        option_id: &i32,
+        option_id: i32,
         transaction: &Hash,
     ) {
         let mut history = self.election_history(election_id);
         history.push(*transaction);
         let history_hash = history.object_hash();
+        let old_election = self.elections().get(&election_id).unwrap();
+        self.elections().put(
+            &election_id,
+            Election {
+                history_len: old_election.history_len + 1,
+                history_hash,
+                ..old_election
+            },
+        );
         self.election_votes(election_id)
-            .put(participant_key, *option_id);
+            .put(participant_key, option_id);
     }
 
-    pub fn election_results(&self, election_id: &i64) -> Option<HashMap<i32, u32>> {
-        self.elections().get(election_id).map(|e| {
+    pub fn election_results(&self, election_id: i64) -> Option<HashMap<i32, u32>> {
+        self.elections().get(&election_id).map(|e| {
             let mut sum: HashMap<i32, u32> = e.options.iter().map(|o| (o.id, 0)).collect();
             self.election_votes(election_id).iter().for_each(|(_, v)| {
                 if let Some(counter) = sum.get_mut(&v) {
@@ -274,5 +363,5 @@ where
         })
     }
 
-    //endregoin
+    //endregion
 }

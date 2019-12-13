@@ -4,9 +4,8 @@ use std::{collections::HashMap, time::SystemTime};
 
 use serde_json::json;
 
-use time::Duration;
-
 use chrono::{DateTime, Utc};
+use time::Duration;
 
 use exonum::{
     api::node::public::explorer::{TransactionQuery, TransactionResponse},
@@ -17,7 +16,6 @@ use exonum::{
 use exonum_testkit::{ApiKind, TestKit, TestKitApi, TestKitBuilder};
 use exonum_time::{schema::TimeSchema, time_provider::MockTimeProvider, TimeService};
 
-use constant::*;
 use crypto_election_core::{
     constant::BLOCKCHAIN_SERVICE_NAME,
     model::{
@@ -27,6 +25,9 @@ use crypto_election_core::{
     },
 };
 use crypto_election_node::service::Service;
+
+use constant::*;
+use crypto_election_core::schema::ElectionSchema;
 
 struct ElectionApi {
     pub inner: TestKitApi,
@@ -221,6 +222,41 @@ fn create_administration() {
     let administration = api.get_administration(&tx.author()).unwrap();
 
     assert_eq!(administration.name, administration1::NAME);
+}
+
+#[test]
+fn select_administration_principals() {
+    let (mut testkit, api) = create_testkit();
+
+    let (tx_a1, _) = api.create_administration(administration1::NAME, &None);
+    let (tx_a2, _) = api.create_administration(administration2::NAME, &Some(tx_a1.author()));
+
+    testkit.create_block();
+
+    api.assert_tx_status(tx_a1.hash(), &json!({"type": "success"}));
+    api.assert_tx_status(tx_a2.hash(), &json!({"type": "success"}));
+
+    let snapshot = testkit.snapshot();
+
+    let schema = ElectionSchema::new(&snapshot);
+
+    let a1_principals = schema
+        .iter_principals(&tx_a1.author())
+        .unwrap()
+        .collect::<Box<[_]>>();
+    let a2_principals = schema
+        .iter_principals(&tx_a2.author())
+        .unwrap()
+        .collect::<Box<[_]>>();
+
+    assert_eq!(a1_principals.len(), 0);
+    assert_eq!(a2_principals.len(), 1);
+    assert_eq!(a2_principals[0].pub_key, tx_a1.author());
+}
+
+#[test]
+fn select_principals_elections() {
+    //ToDo: Add participants selection
 }
 
 #[test]

@@ -9,7 +9,9 @@ use exonum::{
     crypto::{PublicKey, SecretKey},
     messages::{Message, RawTransaction, Signed},
 };
+use exonum_time::schema::TimeSchema;
 
+use crate::model::wrappers::OptionalPubKeyWrap;
 use crate::{constant, model::transactions::*, schema::ElectionSchema};
 
 #[derive(Serialize, Deserialize, Clone, Debug, TransactionSet)]
@@ -62,7 +64,7 @@ impl Transaction for CreateParticipant {
             );
             Ok(())
         } else {
-            Err(Error::ParticipantAlreadyExists)?
+            Err(Error::ParticipantAlreadyExists.into())
         }
     }
 }
@@ -78,7 +80,7 @@ impl CreateAdministration {
         Message::sign_transaction(
             Self {
                 name: name.to_owned(),
-                //principal_key: principal_key.clone()
+                principal_key: OptionalPubKeyWrap(*principal_key),
             },
             constant::BLOCKCHAIN_SERVICE_ID,
             *pk,
@@ -94,13 +96,11 @@ impl Transaction for CreateAdministration {
 
         let mut schema = ElectionSchema::new(context.fork());
 
-        if schema.participant(pub_key).is_none() {
-            schema.create_administration(
-                pub_key, &self.name, /*&self.principal_key*/ &None, &hash,
-            );
+        if schema.administration(pub_key).is_none() {
+            schema.create_administration(pub_key, &self.name, &self.principal_key, &hash);
             Ok(())
         } else {
-            Err(Error::AdministrationAlreadyExists)?
+            Err(Error::AdministrationAlreadyExists.into())
         }
     }
 }
@@ -110,16 +110,16 @@ impl IssueElection {
         name: &str,
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,
-        options: &Vec<&str>,
+        options: &[&str],
         pk: &PublicKey,
         sk: &SecretKey,
     ) -> Signed<RawTransaction> {
         Message::sign_transaction(
             Self {
                 name: name.to_owned(),
-                start_date: start_date.clone(),
-                finish_date: finish_date.clone(),
-                options: options.into_iter().map(|i| (*i).to_owned()).collect(),
+                start_date: *start_date,
+                finish_date: *finish_date,
+                options: options.iter().map(|i| (*i).to_owned()).collect(),
             },
             constant::BLOCKCHAIN_SERVICE_ID,
             *pk,
@@ -135,11 +135,11 @@ impl Transaction for IssueElection {
         let author = context.author();
 
         if schema.administration(&author).is_none() {
-            Err(Error::AdministrationNotFound)?
+            return Err(Error::AdministrationNotFound.into());
         }
 
         if self.finish_date <= self.start_date {
-            Err(Error::ElectionFinishedEarlierStart)?
+            return Err(Error::ElectionFinishedEarlierStart.into());
         }
 
         schema.issue_election(
@@ -182,35 +182,46 @@ impl Transaction for Vote {
         let tx_author = context.author();
 
         if schema.participant(&tx_author).is_none() {
-            Err(Error::ParticipantNotFound)?
+            return Err(Error::ParticipantNotFound.into());
         }
 
         match schema.elections().get(&self.election_id) {
-            None => Err(Error::ElectionNotFound)?,
+            None => return Err(Error::ElectionNotFound.into()),
             Some(election) => {
+                let now = TimeSchema::new(context.fork())
+                    .time()
+                    .get()
+                    .expect("can not get time");
+                if !election.is_active(now) {
+                    if election.not_started_yet(now) {
+                        return Err(Error::ElectionNotStartedYet.into());
+                    }
+                    return Err(Error::ElectionInactive.into());
+                }
+
                 if !election
                     .options
                     .iter()
                     .map(|option| option.id)
                     .any(|id| id == self.option_id)
                 {
-                    Err(Error::OptionNotFound)?
+                    return Err(Error::OptionNotFound.into());
                 }
             }
         }
 
         if schema
-            .election_votes(&self.election_id)
+            .election_votes(self.election_id)
             .get(&tx_author)
             .is_some()
         {
-            Err(Error::VotedYet)?
+            return Err(Error::VotedYet.into());
         }
 
         schema.vote(
-            &self.election_id,
+            self.election_id,
             &tx_author,
-            &self.option_id,
+            self.option_id,
             &context.tx_hash(),
         );
 
@@ -239,6 +250,10 @@ pub enum Error {
     OptionNotFound = 7,
     #[fail(display = "Vote for current participant has been counted yet")]
     VotedYet = 8,
+    #[fail(display = "Election not available for voting")]
+    ElectionInactive = 9,
+    #[fail(display = "Election not started yet")]
+    ElectionNotStartedYet = 10,
 }
 
 impl From<Error> for ExecutionError {
