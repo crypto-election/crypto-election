@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package crypto_election.core;
+
+import "helpers.proto";
+
+
+message OptionalPubKey {
+    exonum.PublicKey value = 2;
+}
+
+message VecI64Wrap {
+    repeated int64 _0 = 1;
+    uint64 history_len = 2;
+    exonum.Hash history_hash = 3;
+}

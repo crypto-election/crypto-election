@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package crypto_election.core;
+
+
+message Polygon {
+    LineString exterior = 1;
+    repeated LineString interiors = 2;
+}
+
+message LineString {
+    repeated Coordinate items = 1;
+}
+
+message Coordinate{
+    double x = 1;
+    double y = 2;
+}
