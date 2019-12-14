@@ -160,7 +160,7 @@ where
         })
     }
 
-    pub fn iter_pprincipals_from_current(
+    pub fn iter_principals_from_current(
         &self,
         key: &PublicKey,
     ) -> Option<impl Iterator<Item = Administration>> {
@@ -221,7 +221,7 @@ where
         from: DateTime<Utc>,
         to: DateTime<Utc>,
     ) -> Option<impl Iterator<Item = Election> + 'a> {
-        self.iter_pprincipals_from_current(administration_pub_key)
+        self.iter_principals_from_current(administration_pub_key)
             .map(move |administrations| {
                 administrations
                     .flat_map(move |principal| {
