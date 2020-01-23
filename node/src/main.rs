@@ -8,6 +8,7 @@ fn main() {
 
     let node = NodeBuilder::new()
         .with_service(Box::new(configuration::ServiceFactory))
-        .with_service(Box::new(election::service::ServiceFactory));
+        .with_service(Box::new(election::service::ServiceFactory))
+        .with_service(Box::new(exonum_time::TimeServiceFactory));
     node.run();
 }
