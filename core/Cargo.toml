@@ -8,14 +8,13 @@ edition = "2018"
 
 [dependencies]
 chrono = "0.4.9"
-exonum = "0.12.1"#{ git = "https://github.com/integrer/exonum" }
-exonum-derive = "0.12.0"#{ git = "https://github.com/integrer/exonum" }
-exonum-merkledb = "0.12.0"#{ git = "https://github.com/integrer/exonum" }
-exonum-time = "0.12.0"#{ git = "https://github.com/integrer/exonum" }
+exonum = { git = "https://github.com/integrer/exonum", branch = "0-12-1-release" }
+exonum-derive = { git = "https://github.com/integrer/exonum", branch = "0-12-1-release" }
+exonum-merkledb = { git = "https://github.com/integrer/exonum", branch = "0-12-1-release" }
+exonum-time = { git = "https://github.com/integrer/exonum", branch = "0-12-1-release" }
 geo = "0.12.2"
 failure = "0.1.6"
 lazy-init = "0.3.0"
-#non-cuncurrent-lateinit = { path = "../../non-cuncurrent-lateinit"}#{ git = "https://github.com/integrer/non-cuncurrent-lateinit" }
 protobuf = "2.8.0"
 rand = "0.7.2"
 serde = { version = "1.0.102", features = ["derive"] }
@@ -24,7 +23,7 @@ time = "0.1.42"
 
 [dev-dependencies]
 assert_matches = "1.3.0"
-exonum-testkit = "0.12.0"#{ git = "https://github.com/integrer/exonum" }
+exonum-testkit = { git = "https://github.com/integrer/exonum", branch = "0-12-1-release" }
 
 [build-dependencies]
-exonum-build = "0.12.0"#{ git = "https://github.com/integrer/exonum" }
+exonum-build = { git = "https://github.com/integrer/exonum", branch = "0-12-1-release" }
