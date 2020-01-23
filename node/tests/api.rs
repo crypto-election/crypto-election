@@ -19,6 +19,7 @@ use exonum_time::{schema::TimeSchema, time_provider::MockTimeProvider, TimeServi
 use crypto_election_core::{
     constant::BLOCKCHAIN_SERVICE_NAME,
     model::{
+        geo::Polygon,
         public_api::{Info, KeyQuery},
         transactions::{CreateAdministration, CreateParticipant, IssueElection, Vote},
         Administration, Election, Participant,
@@ -39,10 +40,19 @@ impl ElectionApi {
         name: &str,
         email: &str,
         phone_number: &str,
+        residence: &Option<PublicKey>,
         pass_code: &str,
     ) -> (Signed<RawTransaction>, SecretKey) {
         let (pubkey, key) = gen_keypair();
-        let tx = CreateParticipant::sign(name, email, phone_number, pass_code, &pubkey, &key);
+        let tx = CreateParticipant::sign(
+            name,
+            email,
+            phone_number,
+            residence,
+            pass_code,
+            &pubkey,
+            &key,
+        );
         self.assert_tx_hash(&tx);
         (tx, key)
     }
@@ -51,9 +61,10 @@ impl ElectionApi {
         &self,
         name: &str,
         principal: &Option<PublicKey>,
+        area: &Polygon,
     ) -> (Signed<RawTransaction>, SecretKey) {
         let (pubkey, key) = gen_keypair();
-        let tx = CreateAdministration::sign(name, &principal, &pubkey, &key);
+        let tx = CreateAdministration::sign(name, &principal, area, &pubkey, &key);
         self.assert_tx_hash(&tx);
         (tx, key)
     }
@@ -185,6 +196,13 @@ fn create_testkit_with_time() -> (TestKit, ElectionApi, MockTimeProvider) {
     (testkit, api, mock_provider)
 }
 
+fn empty_polygon() -> Polygon {
+    Polygon {
+        interiors: Vec::with_capacity(0),
+        exterior: Vec::<(f64, f64)>::with_capacity(0).into(),
+    }
+}
+
 #[test]
 fn create_participant() {
     let (mut testkit, api) = create_testkit();
@@ -193,6 +211,7 @@ fn create_participant() {
         participant1::NAME,
         participant1::EMAIL,
         participant1::PHONE_NUMBER,
+        &None,
         participant1::PASS_CODE,
     );
 
@@ -213,7 +232,7 @@ fn create_participant() {
 fn create_administration() {
     let (mut testkit, api) = create_testkit();
 
-    let (tx, _) = api.create_administration(administration1::NAME, &None);
+    let (tx, _) = api.create_administration(administration1::NAME, &None, &empty_polygon());
 
     testkit.create_block();
 
@@ -228,8 +247,12 @@ fn create_administration() {
 fn select_administration_principals() {
     let (mut testkit, api) = create_testkit();
 
-    let (tx_a1, _) = api.create_administration(administration1::NAME, &None);
-    let (tx_a2, _) = api.create_administration(administration2::NAME, &Some(tx_a1.author()));
+    let (tx_a1, _) = api.create_administration(administration1::NAME, &None, &empty_polygon());
+    let (tx_a2, _) = api.create_administration(
+        administration2::NAME,
+        &Some(tx_a1.author()),
+        &empty_polygon(),
+    );
 
     testkit.create_block();
 
@@ -264,7 +287,7 @@ fn create_election() {
     let (mut testkit, api, _) = create_testkit_with_time();
 
     let (tx_administration, key_administration) =
-        api.create_administration(administration1::NAME, &None);
+        api.create_administration(administration1::NAME, &None, &empty_polygon());
 
     testkit.create_block();
 
@@ -283,7 +306,7 @@ fn create_election() {
         election1::NAME,
         &start,
         &finish,
-        &election1::OPTIONS.iter().map(|s| s.to_owned()).collect(),
+        &election1::OPTIONS.iter().map(ToOwned::to_owned).collect(),
         &tx_administration.author(),
         &key_administration,
     );
@@ -304,6 +327,7 @@ fn election_results_counting() {
         participant1::NAME,
         participant1::EMAIL,
         participant1::PHONE_NUMBER,
+        &None,
         participant1::PASS_CODE,
     );
 
@@ -311,11 +335,12 @@ fn election_results_counting() {
         participant2::NAME,
         participant2::EMAIL,
         participant2::PHONE_NUMBER,
+        &None,
         participant2::PASS_CODE,
     );
 
     let (tx_administration, key_administration) =
-        api.create_administration(administration1::NAME, &None);
+        api.create_administration(administration1::NAME, &None, &empty_polygon());
 
     testkit.create_block();
 

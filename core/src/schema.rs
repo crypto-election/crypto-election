@@ -9,8 +9,10 @@ use exonum::{
 };
 use exonum_time::schema::TimeSchema;
 
-use crate::model::wrappers::OptionalPubKeyWrap;
-use crate::{constant::BLOCKCHAIN_SERVICE_NAME as SERVICE_NAME, model::*};
+use crate::{
+    model::wrappers::OptionalPubKeyWrap,
+    {constant::BLOCKCHAIN_SERVICE_NAME as SERVICE_NAME, model::*},
+};
 
 #[derive(Debug)]
 pub struct ElectionSchema<T> {
@@ -60,7 +62,7 @@ where
         ]
     }
 
-    //region Participants
+    //#region Participants
     pub fn participants(&self) -> ProofMapIndex<T, PublicKey, Participant> {
         ProofMapIndex::new(
             format!("{}.participants", SERVICE_NAME),
@@ -80,12 +82,24 @@ where
         )
     }
 
+    pub fn participant_location_history(
+        &self,
+        pub_key: &PublicKey,
+    ) -> ProofListIndex<T, (DateTime<Utc>, PublicKey)> {
+        ProofListIndex::new_in_family(
+            format!("{}.participant_location_history", SERVICE_NAME),
+            pub_key,
+            self.access.clone(),
+        )
+    }
+
     pub fn create_participant(
         &mut self,
         key: &PublicKey,
         name: &str,
         email: &str,
         phone_number: &str,
+        residence: &Option<PublicKey>,
         pass_code: &str,
         transaction: &Hash,
     ) {
@@ -99,15 +113,25 @@ where
                 email,
                 phone_number,
                 pass_code,
+                residence,
                 history.len(),
                 &history_hash,
             )
         };
         self.participants().put(key, participant);
     }
+
+    pub fn submit_paticipant_location(
+        &mut self,
+        participant: &PublicKey,
+        date: DateTime<Utc>,
+        location: &PublicKey,
+    ) {
+        self.participant_location_history(participant).push((date, *location));
+    }
     //endregion
 
-    //region Administrations
+    //#region Administrations
     pub fn administrations(&self) -> ProofMapIndex<T, PublicKey, Administration> {
         ProofMapIndex::new(
             format!("{}.administrations", SERVICE_NAME),
@@ -132,13 +156,27 @@ where
         key: &PublicKey,
         name: &str,
         principal: &OptionalPubKeyWrap,
+        area: &geo::Polygon,
         transaction: &Hash,
     ) {
         let administration = {
             let mut history = self.administration_history(key);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Administration::new(key, name, principal, history.len(), &history_hash)
+            let administration_level = principal
+                .0
+                .map(|pk| self.administration(&pk).unwrap().administration_level + 1)
+                .unwrap_or(0);
+
+            Administration::new(
+                key,
+                name,
+                principal,
+                area,
+                administration_level,
+                history.len(),
+                &history_hash,
+            )
         };
         self.administrations().put(key, administration);
 
@@ -172,7 +210,7 @@ where
     }
     //endregion
 
-    //region Elections
+    //#region Elections
     fn election_ids_of_administrations(&self) -> ProofMapIndex<T, PublicKey, wrappers::VecI64> {
         ProofMapIndex::new(
             format!("{}.election_ids_of_administrations", SERVICE_NAME),

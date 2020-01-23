@@ -14,8 +14,9 @@ message Participant {
     string email = 3;
     string phone_number = 4;
     string pass_code = 5;
-    uint64 history_len = 6;
-    exonum.Hash history_hash = 7;
+    OptionalPubKey residence = 6;
+    uint64 history_len = 7;
+    exonum.Hash history_hash = 8;
 }
 
 message Administration {
@@ -23,16 +24,16 @@ message Administration {
     string name = 2;
     OptionalPubKey principal_key = 3;
     Polygon area = 4;
-    uint64 history_len = 5;
-    exonum.Hash history_hash = 6;
-    // ToDo: Add polygons.
+    uint32 administration_level = 5;
+    uint64 history_len = 6;
+    exonum.Hash history_hash = 7;
 }
 
 message Election {
     int64 id = 1;
     exonum.PublicKey author_key = 2;
     string name = 3;
-    bool is_cancelled = 4;// ToDo: Remove redundant field
+    bool is_cancelled = 4;
     google.protobuf.Timestamp start_date = 5;
     google.protobuf.Timestamp finish_date = 6;
     repeated ElectionOption options = 7;

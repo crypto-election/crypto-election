@@ -4,6 +4,8 @@ use rand::{thread_rng, Rng};
 
 use chrono::{DateTime, Utc};
 
+use geo::algorithm::contains::Contains;
+
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey, SecretKey},
@@ -11,8 +13,11 @@ use exonum::{
 };
 use exonum_time::schema::TimeSchema;
 
-use crate::model::wrappers::OptionalPubKeyWrap;
-use crate::{constant, model::transactions::*, schema::ElectionSchema};
+use crate::{
+    constant,
+    model::{self, geo::*, transactions::*, wrappers::OptionalPubKeyWrap},
+    schema::ElectionSchema,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug, TransactionSet)]
 pub enum ElectionTransactions {
@@ -20,6 +25,7 @@ pub enum ElectionTransactions {
     CreateAdministration(CreateAdministration),
     IssueElection(IssueElection),
     Vote(Vote),
+    SubmitLocation(SubmitLocation),
 }
 
 impl CreateParticipant {
@@ -28,6 +34,7 @@ impl CreateParticipant {
         name: &str,
         email: &str,
         phone_number: &str,
+        residence: &Option<PublicKey>,
         pass_code: &str,
         pk: &PublicKey,
         sk: &SecretKey,
@@ -37,6 +44,7 @@ impl CreateParticipant {
                 name: name.to_owned(),
                 email: email.to_owned(),
                 phone_number: phone_number.to_owned(),
+                residence: OptionalPubKeyWrap(residence.clone()),
                 pass_code: pass_code.to_owned(),
             },
             constant::BLOCKCHAIN_SERVICE_ID,
@@ -59,6 +67,7 @@ impl Transaction for CreateParticipant {
                 &self.name,
                 &self.email,
                 &self.phone_number,
+                &self.residence.0,
                 &self.pass_code,
                 &hash,
             );
@@ -74,6 +83,7 @@ impl CreateAdministration {
     pub fn sign(
         name: &str,
         principal_key: &Option<PublicKey>,
+        area: &Polygon,
         pk: &PublicKey,
         sk: &SecretKey,
     ) -> Signed<RawTransaction> {
@@ -81,6 +91,7 @@ impl CreateAdministration {
             Self {
                 name: name.to_owned(),
                 principal_key: OptionalPubKeyWrap(*principal_key),
+                area: area.clone(),
             },
             constant::BLOCKCHAIN_SERVICE_ID,
             *pk,
@@ -97,7 +108,13 @@ impl Transaction for CreateAdministration {
         let mut schema = ElectionSchema::new(context.fork());
 
         if schema.administration(pub_key).is_none() {
-            schema.create_administration(pub_key, &self.name, &self.principal_key, &hash);
+            schema.create_administration(
+                pub_key,
+                &self.name,
+                &self.principal_key,
+                &self.area,
+                &hash,
+            );
             Ok(())
         } else {
             Err(Error::AdministrationAlreadyExists.into())
@@ -192,10 +209,11 @@ impl Transaction for Vote {
                     .time()
                     .get()
                     .expect("can not get time");
+                if election.not_started_yet(now) {
+                    return Err(Error::ElectionNotStartedYet.into());
+                }
+
                 if !election.is_active(now) {
-                    if election.not_started_yet(now) {
-                        return Err(Error::ElectionNotStartedYet.into());
-                    }
                     return Err(Error::ElectionInactive.into());
                 }
 
@@ -229,6 +247,49 @@ impl Transaction for Vote {
     }
 }
 
+impl SubmitLocation {
+    pub fn sign(position: Coordinate, pk: &PublicKey, sk: &SecretKey) -> Signed<RawTransaction> {
+        Message::sign_transaction(Self { position }, constant::BLOCKCHAIN_SERVICE_ID, *pk, sk)
+    }
+}
+
+impl Transaction for SubmitLocation {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        let mut schema = ElectionSchema::new(context.fork());
+
+        let tx_author = context.author();
+
+        if schema.participant(&tx_author).is_none() {
+            return Err(Error::ParticipantNotFound.into());
+        }
+
+        let location = {
+            let point = geo::Point(self.position.into());
+
+            let mut found_administrations_by_lvl = schema
+                .administrations()
+                .into_iter()
+                .map(|kv| kv.1)
+                .filter(|a| geo::Polygon::<f64>::from(a.area.clone()).contains(&point))
+                .collect::<Vec<model::Administration>>();
+
+            found_administrations_by_lvl
+                .sort_by(|a, b| a.administration_level.partial_cmp(&b.administration_level).unwrap());
+
+            found_administrations_by_lvl.first().map(|a| a.pub_key)
+        }.ok_or(Error::BadLocation)?;
+
+        let now = TimeSchema::new(context.fork())
+            .time()
+            .get()
+            .expect("can not get time");
+
+        schema.submit_paticipant_location(&tx_author, now, &location);
+
+        Ok(())
+    }
+}
+
 //pub trait
 
 #[derive(Debug, Fail)]
@@ -254,6 +315,8 @@ pub enum Error {
     ElectionInactive = 9,
     #[fail(display = "Election not started yet")]
     ElectionNotStartedYet = 10,
+    #[fail(display = "Location does not contains in any administration area")]
+    BadLocation = 11,
 }
 
 impl From<Error> for ExecutionError {

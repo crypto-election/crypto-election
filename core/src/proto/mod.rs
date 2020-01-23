@@ -3,7 +3,7 @@
 pub use self::{
     db_models::{Administration, Election, ElectionOption, Participant},
     geo::{Coordinate, LineString, Polygon},
-    transactions::{CreateAdministration, CreateParticipant, IssueElection, Vote},
+    transactions::{CreateAdministration, CreateParticipant, IssueElection, SubmitLocation, Vote},
     wrappers::{OptionalPubKey, VecI64Wrap},
 };
 

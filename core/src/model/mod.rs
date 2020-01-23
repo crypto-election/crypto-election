@@ -31,6 +31,8 @@ pub struct Participant {
     pub phone_number: String,
     /// Pass code of participant.
     pub pass_code: String,
+    /// `Administration` pub_key, where participanti is resident.
+    pub residence: OptionalPubKeyWrap,
     /// Length of the transactions history.
     pub history_len: u64,
     /// `Hash` of the transaction history.
@@ -44,7 +46,8 @@ pub struct Administration {
     pub pub_key: PublicKey,
     pub name: String,
     pub principal_key: OptionalPubKeyWrap,
-    //pub coordinates: Polygon<f32>,
+    pub area: geo::Polygon,
+    pub administration_level: u32,
     pub history_len: u64,
     pub history_hash: Hash,
 }
@@ -78,6 +81,7 @@ impl Participant {
         email: &str,
         phone_number: &str,
         pass_code: &str,
+        residence: &Option<PublicKey>,
         history_len: u64,
         history_hash: &Hash,
     ) -> Self {
@@ -87,6 +91,7 @@ impl Participant {
             email: email.to_owned(),
             phone_number: phone_number.to_owned(),
             pass_code: pass_code.to_owned(),
+            residence: OptionalPubKeyWrap(residence.clone()),
             history_len,
             history_hash: *history_hash,
         }
@@ -99,6 +104,8 @@ impl Administration {
         &pub_key: &PublicKey,
         name: &str,
         principal_key: &OptionalPubKeyWrap,
+        area: &geo::Polygon,
+        administration_level: u32,
         history_len: u64,
         history_hash: &Hash,
     ) -> Self {
@@ -106,6 +113,8 @@ impl Administration {
             pub_key,
             name: name.to_owned(),
             principal_key: *principal_key,
+            area: area.clone(),
+            administration_level,
             history_len,
             history_hash: *history_hash,
         }

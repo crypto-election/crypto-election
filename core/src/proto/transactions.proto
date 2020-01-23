@@ -4,18 +4,21 @@ package crypto_election.core;
 
 import "google/protobuf/timestamp.proto";
 import "wrappers.proto";
+import "geo.proto";
 
 
 message CreateParticipant {
     string name = 1;
     string email = 2;
     string phone_number = 3;
-    string pass_code = 4;
+    OptionalPubKey residence = 4;
+    string pass_code = 5;
 }
 
 message CreateAdministration {
     string name = 1;
     OptionalPubKey principal_key = 2;
+    Polygon area = 3;
 }
 
 message IssueElection {
@@ -29,4 +32,8 @@ message Vote {
     int64 election_id = 1;
     int32 option_id = 2;
     int64 seed = 3;
+}
+
+message SubmitLocation {
+    Coordinate position = 1;
 }
