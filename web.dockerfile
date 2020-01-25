@@ -12,6 +12,7 @@ FROM ubuntu:18.04
 WORKDIR /usr/src
 
 ADD core/src/proto/ proto/
+ADD core/exonum_proto/ proto/exonum/
 ADD web/ web/
 
 WORKDIR /usr/src/web
