@@ -1,0 +1,10 @@
+version: "3.7"
+services: 
+    node1:
+    node2:
+    node3:
+    node4:
+    web:
+        build: 
+            context: ./
+            dockerfile: web.dockerfile
