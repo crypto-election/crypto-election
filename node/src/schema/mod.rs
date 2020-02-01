@@ -5,48 +5,40 @@ use time::Duration;
 
 use exonum::{
     crypto::{Hash, PublicKey},
-    exonum_merkledb::{IndexAccess, ObjectHash, ProofListIndex, ProofMapIndex},
+    merkledb::{
+        access::{Access, FromAccess, RawAccessMut},
+        Group, ObjectHash, ProofListIndex, RawProofMapIndex},
+    runtime::CallerAddress as Address
 };
+use exonum_derive::{FromAccess, RequireArtifact};
 use exonum_time::schema::TimeSchema;
 
 use crate::{
     model::wrappers::OptionalPubKeyWrap,
-    {constant::BLOCKCHAIN_SERVICE_NAME as SERVICE_NAME, model::*},
+    constant::BLOCKCHAIN_SERVICE_NAME as SERVICE_NAME,
+    model::*,
 };
 
-#[derive(Debug)]
-pub struct ElectionSchema<T> {
-    access: T,
+mod iter;
+
+
+
+/// Database schema for elections.
+#[derive(Debug, FromAccess)]
+pub(crate) struct SchemaImpl<T: Access> {
+    /// Public part of schema.
+    #[from_access(flatten)]
+    pub public: Schema<T>,
+    /// History for specific participants.
+    pub participant_history: Group<T, Address, ProofListIndex<T::Base, Hash>>,
 }
 
-#[derive(Debug)]
-struct PrincipalIterator<T>
-where
-    T: IndexAccess,
-{
-    index: ProofMapIndex<T, PublicKey, Administration>,
-    key: Option<PublicKey>,
+#[derive(Debug, FromAccess, RequireArtifact)]
+pub struct Schema<T: Access> {
+    pub participants: RawProofMapIndex<T::Base, Address, Participant>,
 }
 
-impl<T> Iterator for PrincipalIterator<T>
-where
-    T: IndexAccess,
-{
-    type Item = Administration;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.key.map(|key| {
-            let principal = self
-                .index
-                .get(&key)
-                .expect("Unable to find administration by public key.");
-            self.key = principal.principal_key.0;
-            principal
-        })
-    }
-}
-
-impl<T> ElectionSchema<T>
+impl<T> Schema<T>
 where
     T: IndexAccess,
 {
@@ -192,7 +184,7 @@ where
 
     pub fn iter_principals(&self, key: &PublicKey) -> Option<impl Iterator<Item = Administration>> {
         let administrations = self.administrations();
-        administrations.get(key).map(|object| PrincipalIterator {
+        administrations.get(key).map(|object| iter.PrincipalIterator {
             key: object.principal_key.0,
             index: administrations,
         })
@@ -203,7 +195,7 @@ where
         key: &PublicKey,
     ) -> Option<impl Iterator<Item = Administration>> {
         let administrations = self.administrations();
-        administrations.get(key).map(|_| PrincipalIterator {
+        administrations.get(key).map(|_| iter.PrincipalIterator {
             key: Some(*key),
             index: administrations,
         })

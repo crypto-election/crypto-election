@@ -9,8 +9,16 @@ extern crate failure;
 //#[macro_use]
 extern crate serde_derive;
 
-extern crate crypto_election_core as core;
-
 pub mod service;
 
 pub mod api;
+
+pub mod model;
+
+mod proto;
+
+pub mod constant;
+
+pub mod schema;
+
+mod tx_behavior;

@@ -25,10 +25,10 @@ use crypto_election_core::{
         Administration, Election, Participant,
     },
 };
-use crypto_election_node::service::Service;
+use crypto_election_node::{service::Service, schema::ElectionSchema};
 
 use constant::*;
-use crypto_election_core::schema::ElectionSchema;
+
 
 struct ElectionApi {
     pub inner: TestKitApi,
