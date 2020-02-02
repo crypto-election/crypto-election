@@ -2,10 +2,12 @@ use serde::{Deserialize, Serialize};
 
 use chrono::{DateTime, Utc};
 
-use crate::{
-    model::{geo, wrappers::OptionalPubKeyWrap},
-    proto,
+use super::model::{
+    self::{AdministrationAddress, ParticipantAddress},
+    geo,
+    wrappers::OptionalContainer,
 };
+use crate::proto;
 
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::CreateParticipant")]
@@ -13,7 +15,7 @@ pub struct CreateParticipant {
     pub name: String,
     pub email: String,
     pub phone_number: String,
-    pub residence: OptionalPubKeyWrap,
+    pub residence: OptionalContainer<AdministrationAddress>,
     pub pass_code: String,
 }
 
@@ -21,7 +23,7 @@ pub struct CreateParticipant {
 #[exonum(pb = "proto::CreateAdministration")]
 pub struct CreateAdministration {
     pub name: String,
-    pub principal_key: OptionalPubKeyWrap,
+    pub principal_key: OptionalContainer<AdministrationAddress>,
     pub area: geo::Polygon,
 }
 
@@ -39,7 +41,6 @@ pub struct IssueElection {
 pub struct Vote {
     pub election_id: i64,
     pub option_id: i32,
-    //FixMe: add seed mechanism
     pub seed: i64,
 }
 
@@ -47,4 +48,5 @@ pub struct Vote {
 #[exonum(pb = "proto::SubmitLocation")]
 pub struct SubmitLocation {
     pub position: geo::Coordinate,
+    pub date: DateTime<Utc>,
 }

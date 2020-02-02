@@ -12,17 +12,24 @@ use chrono::{DateTime, Utc};
 
 use serde::{Deserialize, Serialize};
 
-use exonum::crypto::{Hash, PublicKey};
+use exonum::{
+    crypto::{Hash, PublicKey},
+    runtime::CallerAddress as Address,
+};
 
-use wrappers::OptionalPubKeyWrap;
+use wrappers::OptionalContainer;
 
 use crate::proto;
+
+pub type ParticipantAddress = Address;
+pub type AdministrationAddress = Address;
+pub type ElectionAddress = i64;
 
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::Participant")]
 pub struct Participant {
-    /// `PublicKey` of participant.
-    pub pub_key: PublicKey,
+    /// `Address` of participant.
+    pub pub_key: ParticipantAddress,
     /// Name of participant.
     pub name: String,
     /// Email of participant.
@@ -32,7 +39,7 @@ pub struct Participant {
     /// Pass code of participant.
     pub pass_code: String,
     /// `Administration` pub_key, where participanti is resident.
-    pub residence: OptionalPubKeyWrap,
+    pub residence: OptionalContainer<AdministrationAddress>,
     /// Length of the transactions history.
     pub history_len: u64,
     /// `Hash` of the transaction history.
@@ -42,10 +49,10 @@ pub struct Participant {
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::Administration")]
 pub struct Administration {
-    /// `PublicKey` of the administration.
-    pub pub_key: PublicKey,
+    /// `Address` of the administration.
+    pub pub_key: AdministrationAddress,
     pub name: String,
-    pub principal_key: OptionalPubKeyWrap,
+    pub principal_key: OptionalContainer<AdministrationAddress>,
     pub area: geo::Polygon,
     pub administration_level: u32,
     pub history_len: u64,
@@ -55,8 +62,8 @@ pub struct Administration {
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::Election")]
 pub struct Election {
-    pub id: i64,
-    pub author_key: PublicKey,
+    pub id: ElectionAddress,
+    pub author_key: AdministrationAddress,
     pub name: String,
     pub is_cancelled: bool,
     pub start_date: DateTime<Utc>,
@@ -76,12 +83,12 @@ pub struct ElectionOption {
 impl Participant {
     /// Create a new `Participant`.
     pub fn new(
-        &pub_key: &PublicKey,
+        &pub_key: &Address,
         name: &str,
         email: &str,
         phone_number: &str,
         pass_code: &str,
-        residence: &Option<PublicKey>,
+        residence: &Option<AdministrationAddress>,
         history_len: u64,
         history_hash: &Hash,
     ) -> Self {
@@ -101,7 +108,7 @@ impl Participant {
 
 impl Administration {
     pub fn new(
-        &pub_key: &PublicKey,
+        &pub_key: &Address,
         name: &str,
         principal_key: &OptionalPubKeyWrap,
         area: &geo::Polygon,
@@ -124,7 +131,7 @@ impl Administration {
 impl Election {
     pub fn new(
         id: i64,
-        author_key: &PublicKey,
+        author_key: &Address,
         name: &str,
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,

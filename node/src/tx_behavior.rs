@@ -273,11 +273,15 @@ impl Transaction for SubmitLocation {
                 .filter(|a| geo::Polygon::<f64>::from(a.area.clone()).contains(&point))
                 .collect::<Vec<model::Administration>>();
 
-            found_administrations_by_lvl
-                .sort_by(|a, b| a.administration_level.partial_cmp(&b.administration_level).unwrap());
+            found_administrations_by_lvl.sort_by(|a, b| {
+                a.administration_level
+                    .partial_cmp(&b.administration_level)
+                    .unwrap()
+            });
 
             found_administrations_by_lvl.first().map(|a| a.pub_key)
-        }.ok_or(Error::BadLocation)?;
+        }
+        .ok_or(Error::BadLocation)?;
 
         let now = TimeSchema::new(context.fork())
             .time()

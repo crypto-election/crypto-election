@@ -16,7 +16,7 @@ use exonum::{
 use exonum_testkit::{ApiKind, TestKit, TestKitApi, TestKitBuilder};
 use exonum_time::{schema::TimeSchema, time_provider::MockTimeProvider, TimeService};
 
-use crypto_election_core::{
+use crypto_election_node::{
     constant::BLOCKCHAIN_SERVICE_NAME,
     model::{
         geo::Polygon,
@@ -24,11 +24,11 @@ use crypto_election_core::{
         transactions::{CreateAdministration, CreateParticipant, IssueElection, Vote},
         Administration, Election, Participant,
     },
+    schema::SchemaImpl,
+    service::Service,
 };
-use crypto_election_node::{service::Service, schema::ElectionSchema};
 
 use constant::*;
-
 
 struct ElectionApi {
     pub inner: TestKitApi,
