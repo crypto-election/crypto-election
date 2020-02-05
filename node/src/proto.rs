@@ -4,9 +4,9 @@ pub use self::{
     db_models::{Administration, Election, ElectionOption, Participant},
     geo::{Coordinate, LineString, Polygon},
     transactions::{CreateAdministration, CreateParticipant, IssueElection, SubmitLocation, Vote},
-    wrappers::{OptionalPubKey, VecI64Wrap},
+    wrappers::{OptionalHash, VecI64Wrap},
 };
 
 include!(concat!(env!("OUT_DIR"), "/protobuf_mod.rs"));
 
-use exonum::proto::schema::*;
+use exonum::crypto::proto::*;

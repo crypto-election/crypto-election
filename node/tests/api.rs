@@ -221,7 +221,7 @@ fn create_participant() {
 
     let participant = api.get_participant(&tx.author()).unwrap();
 
-    assert_eq!(participant.pub_key, tx.author());
+    assert_eq!(participant.addr, tx.author());
     assert_eq!(participant.name, participant1::NAME);
     assert_eq!(participant.email, participant1::EMAIL);
     assert_eq!(participant.phone_number, participant1::PHONE_NUMBER);
@@ -372,15 +372,15 @@ fn election_results_counting() {
 
     assert_eq!(options.len(), 3);
 
-    let tx_vote_alice = api.vote(election.id, options[0].id, &tx_alice.author(), &key_alice);
-    let tx_vote_bob = api.vote(election.id, options[2].id, &tx_bob.author(), &key_bob);
+    let tx_vote_alice = api.vote(election.addr, options[0].id, &tx_alice.author(), &key_alice);
+    let tx_vote_bob = api.vote(election.addr, options[2].id, &tx_bob.author(), &key_bob);
 
     testkit.create_block();
 
     api.assert_tx_status(tx_vote_alice.hash(), &json!({"type": "success"}));
     api.assert_tx_status(tx_vote_bob.hash(), &json!({"type": "success"}));
 
-    let results = api.get_election_result(election.id);
+    let results = api.get_election_result(election.addr);
 
     assert_eq!(results.len(), 3);
 

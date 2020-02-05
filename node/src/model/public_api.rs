@@ -2,16 +2,20 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 use exonum::{
-    blockchain::{BlockProof, TransactionMessage},
+    blockchain::BlockProof,
     crypto::{Hash, PublicKey},
-    exonum_merkledb::{ListProof, MapProof},
+    messages::{AnyTx, Verified},
+};
+use exonum_merkledb::{
+    proof_map::{Hashed, Raw},
+    ListProof, MapProof,
 };
 
-use super::{Administration, Election, Participant};
+use super::{Administration, AdministrationAddress, Election, Participant, ParticipantAddress};
 
-pub type ParticipantInfo = Info<PublicKey, Participant>;
-pub type AdministrationInfo = Info<PublicKey, Administration>;
-pub type ElectionInfo = Info<i64, Election>;
+pub type ParticipantInfo = Info<ParticipantAddress, Participant>;
+pub type AdministrationInfo = Info<AdministrationAddress, Administration>;
+pub type ElectionInfo = HashedInfo<i64, Election>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Info<K, E>
@@ -28,14 +32,33 @@ pub struct Proof<K, E>
 where
     E: Debug,
 {
-    pub to_table: MapProof<Hash, Hash>,
+    pub to_table: MapProof<String, Hash>,
+    pub to_object: MapProof<K, E, Raw>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HashedInfo<K, E>
+where
+    E: Debug,
+{
+    pub block_proof: BlockProof,
+    pub object_proof: HashedProof<K, E>,
+    pub history: Option<History>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HashedProof<K, E>
+where
+    E: Debug,
+{
+    pub to_table: MapProof<String, Hash>,
     pub to_object: MapProof<K, E>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct History {
     pub proof: ListProof<Hash>,
-    pub transactions: Vec<TransactionMessage>,
+    pub transactions: Vec<Verified<AnyTx>>,
 }
 
 pub type PubKeyQuery = KeyQuery<PublicKey>;

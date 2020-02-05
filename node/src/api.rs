@@ -1,85 +1,68 @@
-use core::{
-    constant::BLOCKCHAIN_SERVICE_ID,
-    model::{public_api::*, Election},
-    schema::ElectionSchema,
+use crate::{
+    constant,
+    model::{public_api::*, AdministrationAddress, Election},
+    schema::SchemaImpl,
 };
-
-use either::*;
+use std::{collections::HashMap, fmt::Debug, iter::FromIterator};
 
 use exonum::{
-    api::{self, ServiceApiBuilder, ServiceApiState},
-    blockchain::{self, BlockProof},
+    blockchain::IndexProof,
     crypto::{Hash, PublicKey},
-    explorer::BlockchainExplorer,
-    helpers::Height,
+    runtime::{BlockchainData, Caller},
 };
-
-use exonum::blockchain::Blockchain;
-use exonum_merkledb::{BinaryKey, BinaryValue, IndexAccess, MapProof, ObjectHash, ProofListIndex};
-use std::collections::HashMap;
-use std::fmt::Debug;
+use exonum_merkledb::{
+    access::RawAccess, proof_map::Raw, BinaryKey, BinaryValue, MapProof, ObjectHash,
+    ProofListIndex, Snapshot,
+};
+use exonum_rust_runtime::api::{self, ServiceApiBuilder, ServiceApiState};
 
 #[derive(Debug, Clone, Copy)]
 pub struct PublicApi;
 
 impl PublicApi {
-    pub fn entity_info<A, DSC, K, E, PS, OS, HS>(
-        master_schema_or_metadata: Either<
-            &blockchain::Schema<A>,
-            (&BlockProof, &MapProof<Hash, Hash>),
-        >,
-        database_schema: &DSC,
-        blockchain: &Blockchain,
-        object_selector: OS,
-        proof_selector: PS,
+    pub fn entity_info<A, K, E, HS>(
+        blockchain_data: &BlockchainData<&dyn Snapshot>,
+        idx_name: &str,
+        object: Option<E>,
+        object_proof: MapProof<K, E, Raw>,
         history_selector: HS,
     ) -> Info<K, E>
     where
-        A: IndexAccess,
+        A: RawAccess,
         K: BinaryKey + ObjectHash + Debug + Clone + Copy,
         E: BinaryValue + ObjectHash + Debug,
-        OS: FnOnce(&DSC) -> Option<E>,
-        PS: FnOnce(&DSC) -> MapProof<K, E>,
-        HS: FnOnce(&DSC) -> ProofListIndex<A, Hash>,
+        HS: FnOnce() -> ProofListIndex<A, Hash>,
     {
-        let (block_proof, to_table) = master_schema_or_metadata.either(
-            |master_schema| {
-                let max_height = master_schema.block_hashes_by_height().len() - 1;
-                (
-                    master_schema
-                        .block_and_precommits(Height(max_height))
-                        .unwrap(),
-                    master_schema.get_proof_to_service_table(BLOCKCHAIN_SERVICE_ID, 0),
-                )
-            },
-            |(block_proof, to_table)| (block_proof.clone(), to_table.clone()),
-        );
+        let IndexProof {
+            block_proof,
+            index_proof,
+            ..
+        } = blockchain_data.proof_for_service_index(idx_name).unwrap();
 
-        let object_proof = Proof {
-            to_table,
-            to_object: proof_selector(database_schema),
+        let proof = Proof {
+            to_table: index_proof,
+            to_object: object_proof,
         };
 
-        let object = object_selector(database_schema);
-
         let history = object.map(|_| {
-            let history = history_selector(database_schema);
-            let explorer = BlockchainExplorer::new(blockchain);
+            let history = history_selector();
+            let proof = history.get_range_proof(..);
 
+            let transactions = blockchain_data.for_core().transactions();
             let transactions = history
                 .iter()
-                .map(|record| explorer.transaction_without_proof(&record).unwrap())
-                .collect::<Vec<_>>();
+                .map(|record| transactions.get(&record).unwrap())
+                .collect();
 
             History {
-                proof: history.get_range_proof(0..history.len()),
+                proof,
                 transactions,
             }
         });
 
         Info {
             block_proof,
-            object_proof,
+            object_proof: proof,
             history,
         }
     }
@@ -88,31 +71,31 @@ impl PublicApi {
         state: &ServiceApiState,
         query: KeyQuery<PublicKey>,
     ) -> api::Result<ParticipantInfo> {
-        let access = state.snapshot();
+        let schema = SchemaImpl::new(state.service_data());
+        let address = Caller::Transaction { author: query.key }.address();
 
         Ok(Self::entity_info(
-            Left(&blockchain::Schema::new(&access)),
-            &ElectionSchema::new(&access),
-            state.blockchain(),
-            |schema| schema.participant(&query.key),
-            |schema| schema.participants().get_proof(query.key),
-            |schema| schema.participant_history(&query.key),
+            &state.data(),
+            "participants",
+            schema.public.participants.get(&address),
+            schema.public.participants.get_proof(address),
+            || schema.participant_history.get(&address),
         ))
     }
 
     pub fn administration_info(
-        state: &ServiceApiState,
+        state: &ServiceApiState<'_>,
         query: KeyQuery<PublicKey>,
     ) -> api::Result<AdministrationInfo> {
-        let access = state.snapshot();
+        let schema = SchemaImpl::new(state.service_data());
+        let address = Caller::Transaction { author: query.key }.address();
 
         Ok(Self::entity_info(
-            Left(&blockchain::Schema::new(&access)),
-            &ElectionSchema::new(&access),
-            state.blockchain(),
-            |schema| schema.administration(&query.key),
-            |schema| schema.administrations().get_proof(query.key),
-            |schema| schema.administration_history(&query.key),
+            &state.data(),
+            "administrations",
+            schema.public.administrations.get(&address),
+            schema.public.administrations.get_proof(address),
+            || schema.administration_history.get(&address),
         ))
     }
 
@@ -120,40 +103,77 @@ impl PublicApi {
         state: &ServiceApiState,
         query: KeyQuery<i64>,
     ) -> api::Result<ElectionInfo> {
-        let access = state.snapshot();
-        Ok(Self::entity_info(
-            Left(&blockchain::Schema::new(&access)),
-            &ElectionSchema::new(&access),
-            state.blockchain(),
-            |schema| schema.elections().get(&query.key),
-            |schema| schema.elections().get_proof(query.key),
-            |schema| schema.election_history(query.key),
-        ))
+        let schema = SchemaImpl::new(state.service_data());
+
+        let idx_name = "elections";
+
+        let IndexProof {
+            block_proof,
+            index_proof,
+            ..
+        } = state.data().proof_for_service_index(idx_name).unwrap();
+
+        let proof = HashedProof {
+            to_table: index_proof,
+            to_object: schema.public.elections.get_proof(query.key),
+        };
+
+        let history = schema.public.elections.get(&query.key).map(|_| {
+            let history = schema.election_history.get(&query.key);
+            let proof = history.get_range_proof(..);
+
+            let transactions = state.data().for_core().transactions();
+            let transactions = history
+                .iter()
+                .map(|record| transactions.get(&record).unwrap())
+                .collect();
+
+            History {
+                proof,
+                transactions,
+            }
+        });
+
+        Ok(HashedInfo {
+            block_proof,
+            object_proof: proof,
+            history,
+        })
     }
 
     pub fn all_elections(state: &ServiceApiState, _: ()) -> api::Result<Vec<Election>> {
-        Ok(ElectionSchema::new(&state.snapshot())
-            .elections()
+        Ok(SchemaImpl::new(state.service_data())
+            .public
+            .elections
             .values()
             .collect())
     }
 
     pub fn active_elections(
         state: &ServiceApiState,
-        query: KeyQuery<PublicKey>,
+        query: KeyQuery<AdministrationAddress>,
     ) -> api::Result<Vec<Election>> {
-        ElectionSchema::new(&state.snapshot())
-            .active_elections(&query.key)
-            .ok_or_else(|| api::Error::NotFound("\"Administration not found\"".to_owned()))
+        let time_schema: exonum_time::TimeSchema<_> = state
+            .data()
+            .service_schema(constant::TIME_SERVICE_NAME)
+            .unwrap();
+        let now = time_schema.time.get().expect("can not get time");
+
+        SchemaImpl::new(state.service_data())
+            .public
+            .active_elections(&query.key, now)
+            .map(FromIterator::from_iter)
+            .ok_or_else(|| api::Error::not_found())
     }
 
     pub fn election_results(
         state: &ServiceApiState,
         query: KeyQuery<i64>,
     ) -> api::Result<HashMap<i32, u32>> {
-        ElectionSchema::new(&state.snapshot())
+        SchemaImpl::new(state.service_data())
+            .public
             .election_results(query.key)
-            .ok_or_else(|| api::Error::NotFound("\"Election not found\"".to_owned()))
+            .ok_or_else(|| api::Error::not_found())
     }
 
     pub fn wire(builder: &mut ServiceApiBuilder) {

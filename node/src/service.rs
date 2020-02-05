@@ -1,78 +1,25 @@
-use crate::api;
+use exonum::runtime::{ExecutionContext, ExecutionError};
+use exonum_derive::{ServiceDispatcher, ServiceFactory};
+use exonum_rust_runtime::{api::ServiceApiBuilder, Service};
 
-use exonum::{
-    blockchain::{self, Transaction, TransactionSet},
-    crypto::Hash,
-    helpers::fabric::{self, Context},
-    messages::RawTransaction,
-};
+use crate::{api::PublicApi, schema::SchemaImpl, tx_behavior::ElectionInterface};
 
-use core::{constant, schema::ElectionSchema, tx_behavior::ElectionTransactions};
+#[derive(Debug, ServiceFactory, ServiceDispatcher)]
+#[service_dispatcher(implements("ElectionInterface"))]
+#[service_factory(proto_sources = "crate::proto")]
+pub struct ElectionService;
 
-use exonum::api::ServiceApiBuilder;
-use exonum_merkledb::Snapshot;
-
-pub trait ElectionDataService {
-    fn create_election();
-
-    fn start_election();
-
-    fn stop_election();
-
-    fn create_participant();
-
-    fn vote();
-
-    fn get_election_list();
-}
-
-trait UserLocationService {
-    fn submit_location();
-}
-
-trait LocationDataService {
-    fn create_region();
-
-    fn set_region_name();
-
-    fn set_coordinates();
-}
-
-#[derive(Default, Debug)]
-pub struct Service;
-
-impl blockchain::Service for Service {
-    fn service_id(&self) -> u16 {
-        constant::BLOCKCHAIN_SERVICE_ID
-    }
-
-    fn service_name(&self) -> &str {
-        constant::BLOCKCHAIN_SERVICE_NAME
-    }
-
-    fn state_hash(&self, snapshot: &dyn Snapshot) -> Vec<Hash> {
-        let schema = ElectionSchema::new(snapshot);
-        schema.state_hash()
-    }
-
-    fn tx_from_raw(&self, raw: RawTransaction) -> Result<Box<dyn Transaction>, failure::Error> {
-        ElectionTransactions::tx_from_raw(raw).map(Into::into)
+impl Service for ElectionService {
+    fn initialize(
+        &self,
+        context: ExecutionContext<'_>,
+        _params: Vec<u8>,
+    ) -> Result<(), ExecutionError> {
+        SchemaImpl::new(context.service_data());
+        Ok(())
     }
 
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {
-        api::PublicApi::wire(builder);
-    }
-}
-
-#[derive(Debug)]
-pub struct ServiceFactory;
-
-impl fabric::ServiceFactory for ServiceFactory {
-    fn service_name(&self) -> &str {
-        core::constant::BLOCKCHAIN_SERVICE_NAME
-    }
-
-    fn make_service(&mut self, _: &Context) -> Box<dyn blockchain::Service> {
-        Box::new(Service)
+        PublicApi::wire(builder);
     }
 }

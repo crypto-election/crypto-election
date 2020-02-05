@@ -1,25 +1,27 @@
 use std::iter::FromIterator;
 
 use geo;
-use serde::{Deserialize, Serialize};
+
+use exonum_derive::{BinaryValue, ObjectHash};
+use exonum_proto::ProtobufConvert;
 
 use crate::proto;
 
-#[derive(Serialize, Deserialize, ProtobufConvert, Clone, Debug)]
-#[exonum(pb = "proto::Polygon")]
+#[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::Polygon", serde_pb_convert)]
 pub struct Polygon {
     pub exterior: LineString,
     pub interiors: Vec<LineString>,
 }
 
-#[derive(Serialize, Deserialize, ProtobufConvert, Clone, Debug)]
-#[exonum(pb = "proto::LineString")]
+#[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::LineString", serde_pb_convert)]
 pub struct LineString {
     pub items: Vec<Coordinate>,
 }
 
-#[derive(Serialize, Deserialize, ProtobufConvert, Copy, Clone, Debug)]
-#[exonum(pb = "proto::Coordinate")]
+#[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::Coordinate", serde_pb_convert)]
 pub struct Coordinate {
     pub x: f64,
     pub y: f64,

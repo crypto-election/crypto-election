@@ -10,26 +10,22 @@ pub mod wrappers;
 
 use chrono::{DateTime, Utc};
 
-use serde::{Deserialize, Serialize};
+use exonum::{crypto::Hash, runtime::CallerAddress as Address};
 
-use exonum::{
-    crypto::{Hash, PublicKey},
-    runtime::CallerAddress as Address,
-};
+use exonum_derive::{BinaryValue, ObjectHash};
+use exonum_proto::ProtobufConvert;
 
 use wrappers::OptionalContainer;
 
 use crate::proto;
 
 pub type ParticipantAddress = Address;
-pub type AdministrationAddress = Address;
-pub type ElectionAddress = i64;
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::Participant")]
+#[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::Participant", serde_pb_convert)]
 pub struct Participant {
     /// `Address` of participant.
-    pub pub_key: ParticipantAddress,
+    pub addr: ParticipantAddress,
     /// Name of participant.
     pub name: String,
     /// Email of participant.
@@ -38,7 +34,8 @@ pub struct Participant {
     pub phone_number: String,
     /// Pass code of participant.
     pub pass_code: String,
-    /// `Administration` pub_key, where participanti is resident.
+    /// `Administration` pub_key, where participant is resident.
+    /// *Optional*.
     pub residence: OptionalContainer<AdministrationAddress>,
     /// Length of the transactions history.
     pub history_len: u64,
@@ -46,11 +43,13 @@ pub struct Participant {
     pub history_hash: Hash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::Administration")]
+pub type AdministrationAddress = Address;
+
+#[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::Administration", serde_pb_convert)]
 pub struct Administration {
     /// `Address` of the administration.
-    pub pub_key: AdministrationAddress,
+    pub addr: AdministrationAddress,
     pub name: String,
     pub principal_key: OptionalContainer<AdministrationAddress>,
     pub area: geo::Polygon,
@@ -59,11 +58,13 @@ pub struct Administration {
     pub history_hash: Hash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::Election")]
+pub type ElectionAddress = i64;
+
+#[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::Election", serde_pb_convert)]
 pub struct Election {
-    pub id: ElectionAddress,
-    pub author_key: AdministrationAddress,
+    pub addr: ElectionAddress,
+    pub issuer: AdministrationAddress,
     pub name: String,
     pub is_cancelled: bool,
     pub start_date: DateTime<Utc>,
@@ -73,17 +74,19 @@ pub struct Election {
     pub history_hash: Hash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::ElectionOption")]
+pub type ElectionOptionAddress = i32;
+
+#[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::ElectionOption", serde_pb_convert)]
 pub struct ElectionOption {
-    pub id: i32,
+    pub id: ElectionOptionAddress,
     pub title: String,
 }
 
 impl Participant {
     /// Create a new `Participant`.
     pub fn new(
-        &pub_key: &Address,
+        &addr: &ParticipantAddress,
         name: &str,
         email: &str,
         phone_number: &str,
@@ -93,12 +96,12 @@ impl Participant {
         history_hash: &Hash,
     ) -> Self {
         Self {
-            pub_key,
+            addr,
             name: name.to_owned(),
             email: email.to_owned(),
             phone_number: phone_number.to_owned(),
             pass_code: pass_code.to_owned(),
-            residence: OptionalPubKeyWrap(residence.clone()),
+            residence: (*residence).into(),
             history_len,
             history_hash: *history_hash,
         }
@@ -108,18 +111,18 @@ impl Participant {
 
 impl Administration {
     pub fn new(
-        &pub_key: &Address,
+        &addr: &Address,
         name: &str,
-        principal_key: &OptionalPubKeyWrap,
+        principal_key: &Option<AdministrationAddress>,
         area: &geo::Polygon,
         administration_level: u32,
         history_len: u64,
         history_hash: &Hash,
     ) -> Self {
         Self {
-            pub_key,
+            addr,
             name: name.to_owned(),
-            principal_key: *principal_key,
+            principal_key: principal_key.to_owned().into(),
             area: area.clone(),
             administration_level,
             history_len,
@@ -130,8 +133,8 @@ impl Administration {
 
 impl Election {
     pub fn new(
-        id: i64,
-        author_key: &Address,
+        addr: ElectionAddress,
+        issuer: &AdministrationAddress,
         name: &str,
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,
@@ -140,8 +143,8 @@ impl Election {
         history_hash: &Hash,
     ) -> Self {
         Self {
-            id,
-            author_key: *author_key,
+            addr,
+            issuer: *issuer,
             name: name.to_owned(),
             start_date: *start_date,
             finish_date: *finish_date,

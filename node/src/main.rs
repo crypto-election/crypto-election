@@ -1,14 +1,12 @@
 use crypto_election_node as election;
-use exonum::helpers::fabric::NodeBuilder;
-use exonum_configuration as configuration;
+use exonum_cli::NodeBuilder;
 
 fn main() {
-    exonum::crypto::init();
     exonum::helpers::init_logger().unwrap();
 
-    let node = NodeBuilder::new()
-        .with_service(Box::new(configuration::ServiceFactory))
-        .with_service(Box::new(election::service::ServiceFactory))
-        .with_service(Box::new(exonum_time::TimeServiceFactory));
-    node.run();
+    NodeBuilder::new()
+        .with_service(exonum_time::TimeServiceFactory::default())
+        .with_service(election::service::ElectionService)
+        .run()
+        .unwrap_or_else(|e| panic!("{}", e))
 }

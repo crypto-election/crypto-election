@@ -1,22 +1,17 @@
-use std::{
-    borrow::{Borrow, BorrowMut},
-    convert::{AsMut, AsRef},
-};
+use std::convert::{AsMut, AsRef};
 
 use failure::Error;
 
 use serde::{Deserialize, Serialize};
 
-use exonum::{
-    crypto::{Hash, PublicKey},
-    proto::ProtobufConvert,
-    runtime::CallerAddress as Address,
-};
+use exonum::{crypto::Hash, runtime::CallerAddress as Address};
+use exonum_derive::{BinaryValue, ObjectHash};
+use exonum_proto::ProtobufConvert;
 
 use crate::proto;
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::VecI64Wrap")]
+#[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::VecI64Wrap", serde_pb_convert)]
 pub struct VecI64 {
     pub _0: Vec<i64>,
     pub history_len: u64,
@@ -62,7 +57,7 @@ impl ProtobufConvert for OptionalContainer<Hash> {
 
     fn to_pb(&self) -> Self::ProtoStruct {
         let mut proto = Self::ProtoStruct::new();
-        if let Some(v) = self {
+        if let Some(v) = self.as_ref() {
             proto.set_value(v.to_pb())
         }
         proto
@@ -70,7 +65,7 @@ impl ProtobufConvert for OptionalContainer<Hash> {
 
     fn from_pb(pb: Self::ProtoStruct) -> Result<Self, Error> {
         if pb.has_value() {
-            Ok(Self(Some(Hash::from_pb(pb.get_value())?)))
+            Ok(Self(Some(Hash::from_pb(pb.get_value().to_owned())?)))
         } else {
             Ok(Self(None))
         }
@@ -78,7 +73,7 @@ impl ProtobufConvert for OptionalContainer<Hash> {
 }
 
 impl From<Option<Hash>> for OptionalContainer<Hash> {
-    fn from(option: Option<PublicKey>) -> Self {
+    fn from(option: Option<Hash>) -> Self {
         Self(option)
     }
 }
@@ -88,7 +83,7 @@ impl ProtobufConvert for OptionalContainer<Address> {
 
     fn to_pb(&self) -> Self::ProtoStruct {
         let mut proto = Self::ProtoStruct::new();
-        if let Some(v) = self {
+        if let Some(v) = self.as_ref() {
             proto.set_value(v.to_pb())
         }
         proto
@@ -96,7 +91,7 @@ impl ProtobufConvert for OptionalContainer<Address> {
 
     fn from_pb(pb: Self::ProtoStruct) -> Result<Self, Error> {
         if pb.has_value() {
-            Ok(Self(Some(Address::from_pb(pb.get_value())?)))
+            Ok(Self(Some(Address::from_pb(pb.get_value().to_owned())?)))
         } else {
             Ok(Self(None))
         }
@@ -104,20 +99,20 @@ impl ProtobufConvert for OptionalContainer<Address> {
 }
 
 impl From<Option<Address>> for OptionalContainer<Address> {
-    fn from(option: Option<PublicKey>) -> Self {
+    fn from(option: Option<Address>) -> Self {
         Self(option)
     }
 }
 
-impl<T> AsRef<T> for OptionalContainer<T> {
-    fn as_mut(&self) -> &T {
-        self.0
+impl<T> AsRef<Option<T>> for OptionalContainer<T> {
+    fn as_ref(&self) -> &Option<T> {
+        &self.0
     }
 }
 
-impl<T> AsMut<T> for OptionalContainer<T> {
-    fn as_mut(&mut self) -> &mut T {
-        self.0
+impl<T> AsMut<Option<T>> for OptionalContainer<T> {
+    fn as_mut(&mut self) -> &mut Option<T> {
+        &mut self.0
     }
 }
 

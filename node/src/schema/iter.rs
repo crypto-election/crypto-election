@@ -1,20 +1,17 @@
-use exonum::{
-    merkledb::{access::Access, RawProofMapIndex},
-    runtime::CallerAddress as Address,
-};
+use exonum::merkledb::{access::Access, RawProofMapIndex};
 
-use crate::model::Administration;
+use crate::model::{Administration, AdministrationAddress};
 
 #[derive(Debug)]
-pub struct PrincipalIterator<T>
+pub struct PrincipalIterator<'a, T>
 where
     T: Access,
 {
-    index: RawProofMapIndex<T, Address, Administration>,
-    key: Option<Address>,
+    pub(super) index: &'a RawProofMapIndex<T::Base, AdministrationAddress, Administration>,
+    pub(super) key: Option<AdministrationAddress>,
 }
 
-impl<T> Iterator for PrincipalIterator<T>
+impl<T> Iterator for PrincipalIterator<'_, T>
 where
     T: Access,
 {
