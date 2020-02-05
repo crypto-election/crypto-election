@@ -5,13 +5,59 @@ import * as proto from '../../proto/stubs.js'
 const TRANSACTION_URL = '/api/explorer/v1/transactions'
 const PER_PAGE = 10
 const SERVICE_ID = 128
-const TX_TRANSFER_ID = 0
-const TX_ISSUE_ID = 1
-const TX_WALLET_ID = 2
-const TABLE_INDEX = 0
-const Wallet = Exonum.newType(proto.exonum.examples.cryptocurrency_advanced.Wallet)
 
-function TransferTransaction(publicKey) {
+const TX_CreateParticipant_ID = 2
+const TX_IssueElection_ID = 1
+const TABLE_INDEX = 0
+
+//const TX_WALLET_ID = 2
+//const TX_TRANSFER_ID = 0
+//const TX_ISSUE_ID = 1
+
+// MyCode
+let Participant = Exonum.newType(proto.crypto_election.core.Participant);
+//const Wallet = Exonum.newType(proto.exonum.examples.cryptocurrency_advanced.Wallet)
+
+//MyCode
+
+function CreateParticipantTransaction(publicKey){
+  return Exonum.newTransaction({
+    author: publicKey,
+    service_id: SERVICE_ID,
+    message_id: TX_CreateParticipant_ID,
+    schema: proto.crypto_election.core.CreateParticipant
+  })
+}
+
+function CreateAdministrationTransaction(publicKey){
+  return Exonum.newTransaction({
+    author: publicKey,
+    service_id: SERVICE_ID,
+    message_id: TX_CreateAdministration_ID,
+    schema: proto.crypto_election.core.CreateAdministration
+  })
+}
+
+function IssueElectionTransaction(publicKey){
+  return Exonum.newTransaction({
+    author: publicKey,
+    service_id: SERVICE_ID,
+    message_id: TX_IssueElection_ID,
+    schema: proto.crypto_election.core.IssueElection
+  })
+}
+
+function VoteTransaction(publicKey){
+  return Exonum.newTransaction({
+    author: publicKey,
+    service_id: SERVICE_ID,
+    message_id: TX_Vote_ID,
+    schema: proto.crypto_election.core.Vote
+  })
+}
+//End My code
+
+/*function TransferTransaction(publicKey) {
   return Exonum.newTransaction({
     author: publicKey,
     service_id: SERVICE_ID,
@@ -36,9 +82,24 @@ function CreateTransaction(publicKey) {
     message_id: TX_WALLET_ID,
     schema: proto.exonum.examples.cryptocurrency_advanced.CreateWallet
   })
+}*/
+
+
+//MyCode 2
+function getTransaction(transaction, publicKey) {
+  if (transaction.participant) {
+    return new CreateParticipantTransaction(publicKey)
+  }
+
+  if (transaction.administration) {
+    return new CreateAdministrationTransaction(publicKey)
+  }
+
+  return new IssueElectionTransaction(publicKey)
 }
 
-function getTransaction(transaction, publicKey) {
+
+/*function getTransaction(transaction, publicKey) {
   if (transaction.name) {
     return new CreateTransaction(publicKey)
   }
@@ -48,7 +109,7 @@ function getTransaction(transaction, publicKey) {
   }
 
   return new IssueTransaction(publicKey)
-}
+}*/
 
 module.exports = {
   install(Vue) {
@@ -61,13 +122,17 @@ module.exports = {
         return Exonum.randomUint64()
       },
 
-      createWallet(keyPair, name) {
+      createParticipant(keyPair, name, email, phone_number, residence, pass_code) {
         // Describe transaction
-        const transaction = new CreateTransaction(keyPair.publicKey)
+        const transaction = new CreateParticipantTransaction(keyPair.publicKey)
 
         // Transaction data
         const data = {
-          name: name
+          name: name,
+          email: email,
+          phone_number: phone_number,
+          residence: residence,
+          pass_code: pass_code
         }
 
         // Send transaction into blockchain

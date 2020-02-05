@@ -3,15 +3,95 @@
     <div class="container">
       <div class="row justify-content-sm-center">
         <div class="col-md-6 col-md-offset-3">
-          <h1 class="mt-5 mb-4">Authorization</h1>
+          <h1 class="mt-5 mb-4">Авторизация</h1>
           <tabs>
+            <!--Введение параметров в формы регистрации-->
             <tab :is-active="true" title="Register">
               <form @submit.prevent="register">
                 <div class="form-group">
-                  <label class="control-label">Name:</label>
-                  <input v-model="name" type="text" class="form-control" placeholder="Enter name" maxlength="260" required>
+                  <label for="name" class="control-label">Логин:</label>
+                  <input id="name" v-model.trim="name" type="text" class="form-control" placeholder="Введите ваш логин" maxlength="260" required>
                 </div>
-                <button type="submit" class="btn btn-lg btn-block btn-primary">Register</button>
+                <!--Email-->
+                <div class="form-group">
+                  <label 
+                    for="email" 
+                    class = "control-label"
+                  >Email:</label>
+                  <input 
+                    id= "email" 
+                    v-model.trim= "email"
+                    type= "email"
+                    class= "form-control" 
+                    placeholder= "Введите email" 
+                    maxlength= "260" 
+                    required>
+                </div>
+                <!--Phone-->
+                <div class="form-group">
+                  <label 
+                    for="phone"
+                    class="control-label"
+                  >Телефон:</label>
+                  <input
+                    id="phone"
+                    v-model.trim="phone_number"
+                    type="tel"  
+                    pattern="80[0-9]{9}"               
+                    class="form-control"                  
+                    placeholder="80XXXXXXXXX"
+                    maxlength="260"
+                    required
+                  >
+                </div>
+                <!--Residence-->
+                <div class="form-group">
+                  <label
+                    for="residence"
+                    class="control-label"
+                  >Резиденция:</label>
+                  <input 
+                    id="residence" 
+                    v-model.trim="residence" 
+                    type="text" 
+                    class="form-control" 
+                    placeholder="Введите вашу резиденцию (?)" 
+                    maxlength="260"
+                  >
+                </div>
+                <!--Password-->
+                <div class="form-group">
+                  <label 
+                    for="password"
+                    class="control-label"
+                  >Пароль:</label>
+                  <input
+                    id="password"
+                    v-model.trim="pass_code"
+                    type="password"                  
+                    class="form-control"                  
+                    placeholder="Введите пароль"
+                    maxlength="260"
+                    required
+                  >
+                </div>
+                <!--Confirm password-->
+                <div class="form-group">
+                  <label 
+                    for="confirmPass" 
+                    class="control-label"
+                  >Повторите пароль:</label>
+                  <input
+                    id="confirmPass"
+                    v-model.trim="confirmPass"
+                    type="password"                  
+                    class="form-control"                  
+                    placeholder="Повторите пароль"
+                    maxlength="260"
+                    required
+                  >
+                </div> 
+                <button type="submit" class="btn btn-lg btn-block btn-primary">Регистрация</button>
               </form>
             </tab>
             <tab title="Log in">
@@ -45,7 +125,7 @@
   import Tabs from '../components/Tabs.vue'
   import Modal from '../components/Modal.vue'
   import Spinner from '../components/Spinner.vue'
-
+  
   module.exports = {
     components: {
       Tab,
@@ -56,6 +136,11 @@
     data() {
       return {
         name: '',
+        email: '',
+        phone_number: '',
+        residence: '',
+        pass_code: '',
+        confirmPass: '',
         secretKey: '',
         keyPair: {},
         isModalVisible: false,
@@ -84,13 +169,32 @@
         if (!this.name) {
           return this.$notify('error', 'The name is a required field')
         }
+        if (!this.email) {
+          return this.$notify('error', 'The email is a required field')
+        }
+        if (!this.phone_number) {
+          return this.$notify('error', 'The phone number is a required field')
+        }
+        if (this.pass_code !== this.confirmPass) {
+          return this.$notify('error', 'The password shoul be how Confirm password is a required field')
+        }
 
         this.isSpinnerVisible = true
         this.keyPair = this.$blockchain.generateKeyPair()
 
         try {
-          await this.$blockchain.createWallet(this.keyPair, this.name)
+          await this.$blockchain.createParticipant(this.keyPair, 
+          this.name, 
+          this.email, 
+          this.phone_number, 
+          this.residence, 
+          this.pass_code)
           this.name = ''
+          this.email = ''
+          this.phone_number = ''
+          this.residence = ''
+          this.pass_code = ''
+          this.confirmPass = ''
           this.isSpinnerVisible = false
           this.isModalVisible = true
         } catch (error) {
