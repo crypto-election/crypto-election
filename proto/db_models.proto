@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package crypto_election.core;
+
+import "google/protobuf/timestamp.proto";
+
+import "types.proto";
+
+import "wrappers.proto";
+import "geo.proto";
+
+
+message Participant {
+    exonum.crypto.Hash addr = 1;
+    string name = 2;
+    string email = 3;
+    string phone_number = 4;
+    string pass_code = 5;
+    OptionalHash residence = 6;
+    uint64 history_len = 7;
+    exonum.crypto.Hash history_hash = 8;
+}
+
+message Administration {
+    exonum.crypto.Hash addr = 1;
+    string name = 2;
+    OptionalHash principal_key = 3;
+    Polygon area = 4;
+    uint32 administration_level = 5;
+    uint64 history_len = 6;
+    exonum.crypto.Hash history_hash = 7;
+}
+
+message Election {
+    int64 addr = 1;
+    exonum.crypto.Hash issuer = 2;
+    string name = 3;
+    bool is_cancelled = 4;
+    google.protobuf.Timestamp start_date = 5;
+    google.protobuf.Timestamp finish_date = 6;
+    repeated ElectionOption options = 7;
+    uint64 history_len = 8;
+    exonum.crypto.Hash history_hash = 9;
+}
+
+message ElectionOption {
+    int32 id = 1;
+    string title = 2;
+}
+
+message PolygonDef {
+    LineStringDef exterior = 1;
+    repeated LineStringDef interiors = 2;
+}
+
+message LineStringDef {
+    repeated CoordinateDef items = 1;
+}
+
+message CoordinateDef {
+    double x = 1;
+    double y = 2;
+}
