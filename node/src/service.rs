@@ -1,6 +1,6 @@
-use exonum::runtime::{ExecutionContext, ExecutionError};
+use exonum::runtime::{ExecutionContext, ExecutionError, InstanceId};
 use exonum_derive::{ServiceDispatcher, ServiceFactory};
-use exonum_rust_runtime::{api::ServiceApiBuilder, Service};
+use exonum_rust_runtime::{api::ServiceApiBuilder, DefaultInstance, Service};
 
 use crate::{api::PublicApi, schema::SchemaImpl, tx_behavior::ElectionInterface};
 
@@ -22,4 +22,9 @@ impl Service for ElectionService {
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {
         PublicApi::wire(builder);
     }
+}
+/// Use predefined instance name and id for frontend.
+impl DefaultInstance for ElectionService {
+    const INSTANCE_ID: InstanceId = 1;
+    const INSTANCE_NAME: &'static str = "crypto-election";
 }

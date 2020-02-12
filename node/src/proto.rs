@@ -1,11 +1,6 @@
-#![allow(bare_trait_objects, renamed_and_removed_lints)]
+#![allow(bare_trait_objects)]
 
-pub use self::{
-    db_models::{Administration, Election, ElectionOption, Participant},
-    geo::{Coordinate, LineString, Polygon},
-    transactions::{CreateAdministration, CreateParticipant, IssueElection, SubmitLocation, Vote},
-    wrappers::{OptionalHash, VecI64Wrap},
-};
+pub use self::{db_models::*, geo::*, transactions::*, wrappers::*};
 
 include!(concat!(env!("OUT_DIR"), "/protobuf_mod.rs"));
 
