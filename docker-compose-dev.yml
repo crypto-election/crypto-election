@@ -1,0 +1,46 @@
+version: "3.3"
+services:
+    node1: &node_configuration
+        image: integrer/crypto-election-node:dev
+        build:
+            context: ./
+            dockerfile: node/dev.Dockerfile
+        volumes:
+            - shared:/usr/public
+            - ./:/usr/src
+        environment:
+            - COMMAND=run-async-as-master
+            - LABEL=node1
+            - VALIDATORS_ARG=--validators-count 4
+            - &all_node_names LABELS=node1 node2 node3 node4
+
+    node2:
+        <<: *node_configuration
+        environment:
+            - LABEL=node2
+            - *all_node_names
+
+    node3:
+        <<: *node_configuration
+        environment:
+            - LABEL=node3
+            - *all_node_names
+
+    node4:
+        <<: *node_configuration
+        environment:
+            - LABEL=node4
+            - *all_node_names
+
+    web:
+        image: integrer/crypto-election-web:dev
+        build:
+            context: ./
+            dockerfile: web/Dockerfile
+        environment:
+            - API_ADDR=node1
+        ports:
+            - 8008:8008
+
+volumes:
+    shared:

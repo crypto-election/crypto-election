@@ -6,10 +6,7 @@ use exonum::{
     crypto::{Hash, PublicKey},
     messages::{AnyTx, Verified},
 };
-use exonum_merkledb::{
-    proof_map::{Hashed, Raw},
-    ListProof, MapProof,
-};
+use exonum_merkledb::{proof_map::Raw, ListProof, MapProof};
 
 use super::{Administration, AdministrationAddress, Election, Participant, ParticipantAddress};
 

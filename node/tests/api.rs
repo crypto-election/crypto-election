@@ -14,7 +14,7 @@ use exonum::{
     messages::{self, RawTransaction, Signed},
 };
 use exonum_testkit::{ApiKind, TestKit, TestKitApi, TestKitBuilder};
-use exonum_time::{schema::TimeSchema, time_provider::MockTimeProvider, TimeService};
+use exonum_time::{MockTimeProvider, TimeSchema, TimeService};
 
 use crypto_election_node::{
     constant::BLOCKCHAIN_SERVICE_NAME,

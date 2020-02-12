@@ -1,10 +1,73 @@
-version: "3.7"
-services: 
-    node1:
-    node2:
-    node3:
-    node4:
-    web:
-        build: 
+version: "2.4"
+services:
+    node1: &node_configuration
+        build:
             context: ./
-            dockerfile: web.dockerfile
+            dockerfile: node/Dockerfile
+        volumes:
+            - shared:/usr/public
+        environment:
+            - COMMAND=run-async-as-master
+            - LABEL=node1
+            - HOST=172.16.238.2
+            - VALIDATORS_ARG=--validators-count 4
+            - &all_node_names LABELS=node1 node2 node3 node4
+        networks:
+            blockchain:
+                ipv4_address: 172.16.238.2
+
+    node2:
+        <<: *node_configuration
+        environment:
+            - LABEL=node2
+            - HOST=172.16.238.3
+            - *all_node_names
+        networks:
+            blockchain:
+                ipv4_address: 172.16.238.3
+
+    node3:
+        <<: *node_configuration
+        environment:
+            - LABEL=node3
+            - HOST=172.16.238.4
+            - *all_node_names
+        networks:
+            blockchain:
+                ipv4_address: 172.16.238.4
+
+    node4:
+        <<: *node_configuration
+        environment:
+            - LABEL=node4
+            - HOST=172.16.238.5
+            - *all_node_names
+        networks:
+            blockchain:
+                ipv4_address: 172.16.238.5
+
+    web:
+        image: integrer/crypto-election-web
+        build:
+            context: ./
+            dockerfile: web/Dockerfile
+        environment:
+            - API_ADDR=node1
+        ports:
+            - 8008:8008
+        networks:
+            blockchain:
+                ipv4_address: 172.16.238.6
+
+volumes:
+    shared:
+
+networks:
+    blockchain:
+        driver: bridge
+        enable_ipv6: false
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.16.238.0/24
+                  gateway: 172.16.238.1
