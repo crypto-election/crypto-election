@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
- RUN apt-get update \
+RUN apt-get update \
     && apt-get install -y software-properties-common \
     && add-apt-repository ppa:maarten-fonville/protobuf \
     && apt-get update \
@@ -12,12 +12,14 @@ FROM ubuntu:18.04
 
 WORKDIR /usr/src
 
-ADD core/src/proto/ proto/
-ADD core/exonum_proto/ proto/exonum/
+ADD proto/ proto/
 ADD web/ web/
 
 WORKDIR /usr/src/web
 
 RUN npm install && npm run build
 
-CMD ["npm", "start", "--", "--port=8008", "--api-root=http://127.0.0.1:8000"]
+ENV api_host=node
+ENV api_port=8000
+
+CMD npm start -- --port=8008 --api-root=http://$api_host:$api_port

@@ -1,0 +1,14 @@
+version: "3.7"
+services: 
+    node:
+        image: integrer/crypto-election-node:latest
+        ports:
+          - "8000:8000"
+    web:
+        build:
+            context: ./
+            dockerfile: web/Dockerfile
+        links:
+          - node
+        ports:
+          - "8008:8008"

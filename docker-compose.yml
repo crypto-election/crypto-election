@@ -7,4 +7,4 @@ services:
     web:
         build: 
             context: ./
-            dockerfile: web.dockerfile
+            dockerfile: web/Dockerfile

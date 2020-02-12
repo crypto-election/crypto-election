@@ -1,5 +1,6 @@
 Dockerfile
 .dockerignore
+target
 */target
 */Dockerfile
 */.dockerignore
