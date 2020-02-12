@@ -11,13 +11,13 @@ RUN apt-get update \
     && apt-get install -y nodejs
 
 WORKDIR /usr/src
-
 ADD proto/ proto/
-ADD web/ web/
-
+ADD web/package.json web/package-lock.json web/
 WORKDIR /usr/src/web
+RUN npm install
 
-RUN npm install && npm run build
+ADD web/ web/
+RUN npm run build
 
 ENV api_host=node
 ENV api_port=8000
