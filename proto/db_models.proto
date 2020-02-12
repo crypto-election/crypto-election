@@ -4,7 +4,7 @@ package crypto_election.core;
 
 import "google/protobuf/timestamp.proto";
 
-import "types.proto";
+import "exonum/crypto/types.proto";
 
 import "wrappers.proto";
 import "geo.proto";
