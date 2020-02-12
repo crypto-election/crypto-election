@@ -1,1 +1,7 @@
-/target/
+Dockerfile
+.dockerignore
+*/target
+*/Dockerfile
+*/.dockerignore
+.git
+.gitignore
