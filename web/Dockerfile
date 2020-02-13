@@ -16,7 +16,7 @@ ADD web/package.json web/package-lock.json web/
 WORKDIR /usr/src/web
 RUN npm install
 
-ADD web/ web/
+ADD web .
 RUN npm run build
 
 ENV api_host=node
