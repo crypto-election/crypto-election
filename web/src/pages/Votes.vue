@@ -20,88 +20,37 @@
                   <div class="col-sm-9"><code>{{ keyPair.publicKey }}</code></div>
                 </div>
               </li>
-              <li class="list-group-item">
-                <div class="row">
-                  <div class="col-sm-3"><strong>Balance:</strong></div>
-                  <div class="col-sm-9">
-                    <span v-numeral="balance"/>
-                  </div>
-                </div>
-              </li>
             </ul>
           </div>
 
-          <div class="card mt-5">
-            <div class="card-header">Transactions</div>
-            <ul class="list-group list-group-flush">
-              <li class="list-group-item font-weight-bold">
-                <div class="row">
-                  <div class="col-sm-12">Description</div>
-                </div>
-              </li>
-              <!-- eslint-disable-next-line vue/require-v-for-key -->
-              <li v-for="transaction in reverseTransactions" class="list-group-item">
-                <div class="row">
-                  <div class="col-sm-12">
-                    <router-link :to="{ name: 'transaction', params: { hash: transaction.hash } }">
-                      <span v-if="transaction.name">Wallet created</span>
-                      <span v-else-if="transaction.to && transaction.to === keyPair.publicKey">
-                        <strong v-numeral="transaction.amount"/> funds received
-                      </span>
-                      <span v-else-if="transaction.to">
-                        <strong v-numeral="transaction.amount"/> funds sent
-                      </span>
-                      <span v-else>
-                        <strong v-numeral="transaction.amount"/> funds added
-                      </span>
-                    </router-link>
-                  </div>
-                </div>
-              </li>
-            </ul>
-          </div>
+          <div class="card-header mt-5">Список голосований</div>
+          <!-- As a link -->
+          <nav class="nav flex-column">
+            <button
+              :v-for="(navOptions, index) in options"
+              class="btn btn-primary"
+              type="submit"
+              @click="choiseFunc(index)"
+            >{{ navOptions.question }}
+            </button>
+          </nav>
         </div>
         <div class="col-md-6">
           <div class="card mt-5">
-            <div class="card-header">Add funds</div>
-            <div class="card-body">
-              <form @submit.prevent="addFunds">
-                <div class="form-group">
-                  <label class="d-block">Select amount to be added:</label>
-                  <div v-for="variant in variants" :key="variant.id" class="form-check form-check-inline">
-                    <input :id="variant.id" :value="variant.amount" :checked="amountToAdd == variant.amount" v-model="amountToAdd" class="form-check-input" type="radio">
-                    <label :for="variant.id" class="form-check-label">${{ variant.amount }}</label>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Add funds</button>
-              </form>
-            </div>
-          </div>
-
-          <div class="card mt-5">
-            <div class="card-header">Transfer funds</div>
-            <div class="card-body">
-              <form @submit.prevent="transfer">
-                <div class="form-group">
-                  <label>Receiver:</label>
-                  <input v-model="receiver" type="text" class="form-control" placeholder="Enter public key" required>
-                </div>
-                <div class="form-group">
-                  <label>Amount:</label>
-                  <div class="input-group">
-                    <div class="input-group-prepend">
-                      <div class="input-group-text">$</div>
-                    </div>
-                    <input v-model="amountToTransfer" type="number" class="form-control" placeholder="Enter amount" min="0" required>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Transfer funds</button>
-              </form>
+            <div class="card-header">Голосование</div>
+            <div>
+              <vue-poll
+                v-for="(option) of options"
+                :key="option.id"
+                v-bind="option"
+                @addvote="addVote()"
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
+    
 
     <spinner :visible="isSpinnerVisible"/>
   </div>
@@ -112,6 +61,7 @@
   import Modal from '../components/Modal.vue'
   import Navbar from '../components/Navbar.vue'
   import Spinner from '../components/Spinner.vue'
+  import VuePoll from 'vue-poll'
 
   module.exports = {
     components: {
@@ -122,18 +72,35 @@
     data() {
       return {
         name: '',
-        balance: 0,
-        amountToAdd: 10,
         receiver: '',
         amountToTransfer: '',
         isSpinnerVisible: false,
         transactions: [],
-        variants: [
-          { id: 'ten', amount: 10 },
-          { id: 'fifty', amount: 50 },
-          { id: 'hundred', amount: 100 }
-        ]
+        choise: "",
+          visible: false,
+          options: {
+            1: {
+              question: "Какой для вас JS framework является лучшим?",
+              answers: [
+                { value: 1, text: "Vue", votes: 53 },
+                { value: 2, text: "React", votes: 35 },
+                { value: 3, text: "Angular", votes: 30 },
+                { value: 4, text: "Other", votes: 10 }
+              ]
+            },
+            2: {
+              question: "В каком вузе вы учитесь?",
+              answers: [
+                { value: 1, text: "ДОННУ", votes: 20 },
+                { value: 2, text: "ДОННТУ", votes: 17 },
+                { value: 3, text: "ДОНАУИГС", votes: 100 }
+              ]
+            }
+          }
       }
+    },
+    components: {
+      VuePoll
     },
     computed: Object.assign({
       reverseTransactions() {
@@ -143,6 +110,15 @@
       keyPair: state => state.keyPair
     })),
     methods: {
+      addVote(obj){
+        console.log('You voted ' + obj.value + '!');
+      },
+      addVote: function(obj) {
+        console.log("You voted " + obj.value + "!");
+      },
+      choiseFunc: function(a) {
+        this.choise = a;
+      },
       async loadUser() {
         if (this.keyPair === null) {
           this.$store.commit('logout')
