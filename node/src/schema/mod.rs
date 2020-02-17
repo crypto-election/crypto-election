@@ -206,7 +206,7 @@ where
         self.public.participants.put(key, participant);
     }
 
-    pub fn submit_paticipant_location(
+    pub fn submit_participant_location(
         &mut self,
         participant: &ParticipantAddress,
         date: DateTime<Utc>,
