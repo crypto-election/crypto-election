@@ -15,6 +15,18 @@ use crate::model::{geo, wrappers, *};
 
 mod iter;
 
+mod factory;
+
+pub use factory::Factory;
+
+mod participant_schema;
+
+mod participant_schema_mut;
+
+pub(crate) use participant_schema_mut::ParticipantSchemaMut;
+
+pub(self) use participant_schema_mut::ParticipantSchemaMutImpl;
+
 binary_value_tuple_impls! {
     #[derive(Debug)]
     pub TupleContainer {

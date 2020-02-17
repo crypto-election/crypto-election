@@ -11,6 +11,7 @@ chrono = "0.4"
 time = "0.2"
 either = "1.5.3"
 failure = "0.1.6"
+rust_decimal = "1.0, <1.1.0" # The 1.1.0 version requires Rust 1.39+
 
 # Serialization
 serde = "1.0"
