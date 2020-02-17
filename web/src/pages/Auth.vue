@@ -59,38 +59,22 @@
                     maxlength="260"
                   >
                 </div>
-                <!--Password-->
+                <!--Pass_code-->
                 <div class="form-group">
                   <label 
-                    for="password"
+                    for="pass_code"
                     class="control-label"
-                  >Пароль:</label>
+                  >Паспорт:</label>
                   <input
-                    id="password"
+                    id="pass_code"
                     v-model.trim="pass_code"
-                    type="password"                  
+                    type="text"                  
                     class="form-control"                  
-                    placeholder="Введите пароль"
+                    placeholder="Введите данные паспорта"
                     maxlength="260"
                     required
                   >
                 </div>
-                <!--Confirm password-->
-                <div class="form-group">
-                  <label 
-                    for="confirmPass" 
-                    class="control-label"
-                  >Повторите пароль:</label>
-                  <input
-                    id="confirmPass"
-                    v-model.trim="confirmPass"
-                    type="password"                  
-                    class="form-control"                  
-                    placeholder="Повторите пароль"
-                    maxlength="260"
-                    required
-                  >
-                </div> 
                 <button type="submit" class="btn btn-lg btn-block btn-primary">Регистрация</button>
               </form>
             </tab>
@@ -140,7 +124,6 @@
         phone_number: '',
         residence: '',
         pass_code: '',
-        confirmPass: '',
         secretKey: '',
         keyPair: {},
         isModalVisible: false,
@@ -175,9 +158,7 @@
         if (!this.phone_number) {
           return this.$notify('error', 'The phone number is a required field')
         }
-        if (this.pass_code !== this.confirmPass) {
-          return this.$notify('error', 'The password shoul be how Confirm password is a required field')
-        }
+        
 
         this.isSpinnerVisible = true
         this.keyPair = this.$blockchain.generateKeyPair()
@@ -194,7 +175,6 @@
           this.phone_number = ''
           this.residence = ''
           this.pass_code = ''
-          this.confirmPass = ''
           this.isSpinnerVisible = false
           this.isModalVisible = true
         } catch (error) {
