@@ -25,6 +25,6 @@ impl Service for ElectionService {
 }
 /// Use predefined instance name and id for frontend.
 impl DefaultInstance for ElectionService {
-    const INSTANCE_ID: InstanceId = 1;
-    const INSTANCE_NAME: &'static str = "crypto-election";
+    const INSTANCE_ID: InstanceId = crate::constant::BLOCKCHAIN_SERVICE_ID;
+    const INSTANCE_NAME: &'static str = crate::constant::BLOCKCHAIN_SERVICE_NAME;
 }

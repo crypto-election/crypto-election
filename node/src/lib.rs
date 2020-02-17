@@ -11,6 +11,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate exonum_merkledb;
 
+pub use tx_behavior::ElectionInterface;
+
 pub mod service;
 
 pub mod api;

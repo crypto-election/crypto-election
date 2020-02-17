@@ -159,11 +159,11 @@ impl PublicApi {
             .unwrap();
         let now = time_schema.time.get().expect("can not get time");
 
-        SchemaImpl::new(state.service_data())
-            .public
-            .active_elections(&query.key, now)
-            .map(FromIterator::from_iter)
-            .ok_or_else(|| api::Error::not_found())
+        let schema = SchemaImpl::new(state.service_data());
+
+        let iter = schema.public.active_elections(&query.key, now);
+        let opt_vec = iter.map(FromIterator::from_iter);
+        opt_vec.ok_or_else(api::Error::not_found)
     }
 
     pub fn election_results(
@@ -173,7 +173,7 @@ impl PublicApi {
         SchemaImpl::new(state.service_data())
             .public
             .election_results(query.key)
-            .ok_or_else(|| api::Error::not_found())
+            .ok_or_else(api::Error::not_found)
     }
 
     pub fn wire(builder: &mut ServiceApiBuilder) {
