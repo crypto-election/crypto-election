@@ -14,7 +14,7 @@ use exonum_merkledb::{
     access::RawAccess, proof_map::Raw, BinaryKey, BinaryValue, MapProof, ObjectHash,
     ProofListIndex, Snapshot,
 };
-use exonum_rust_runtime::api::{self, ServiceApiBuilder, ServiceApiState};
+use exonum_rust_runtime::api::{self, HttpStatusCode, ServiceApiBuilder, ServiceApiState};
 
 #[derive(Debug, Clone, Copy)]
 pub struct PublicApi;
@@ -159,11 +159,11 @@ impl PublicApi {
             .unwrap();
         let now = time_schema.time.get().expect("can not get time");
 
-        let schema = SchemaImpl::new(state.service_data());
-
-        let iter = schema.public.active_elections(&query.key, now);
-        let opt_vec = iter.map(FromIterator::from_iter);
-        opt_vec.ok_or_else(api::Error::not_found)
+        SchemaImpl::new(state.service_data())
+            .public
+            .active_elections(&query.key, now)
+            .map(FromIterator::from_iter)
+            .ok_or_else(api::Error::not_found)
     }
 
     pub fn election_results(

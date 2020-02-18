@@ -8,9 +8,12 @@ use chrono::{DateTime, Duration, Utc};
 
 use exonum::{
     crypto::{Hash, KeyPair, PublicKey},
+    helpers::Height,
     messages::{AnyTx, Verified},
-    runtime::InstanceId,
+    runtime::{CallerAddress, InstanceId},
 };
+use exonum_explorer_service::ExplorerFactory;
+use exonum_merkledb::ObjectHash;
 use exonum_rust_runtime::ServiceFactory;
 use exonum_testkit::{
     explorer::api::{TransactionQuery, TransactionResponse},
@@ -22,20 +25,15 @@ use crypto_election_node::{
     constant::{BLOCKCHAIN_SERVICE_ID, BLOCKCHAIN_SERVICE_NAME},
     model::{
         geo::Polygon,
-        public_api::KeyQuery,
+        public_api::{AdministrationInfo, KeyQuery, ParticipantInfo},
         transactions::{CreateAdministration, CreateParticipant, IssueElection, Vote},
-        Administration, Election, Participant,
+        Administration, AdministrationAddress, Election, Participant,
     },
     service::ElectionService,
     ElectionInterface,
 };
 
 use constant::*;
-use crypto_election_node::model::public_api::{AdministrationInfo, ParticipantInfo};
-use crypto_election_node::model::AdministrationAddress;
-use exonum::runtime::CallerAddress;
-use exonum_explorer_service::ExplorerFactory;
-use exonum_merkledb::ObjectHash;
 
 const TIME_SERVICE_ID: InstanceId = 102;
 const TIME_SERVICE_NAME: &str = "time-oracle";
@@ -239,7 +237,7 @@ impl ElectionApi {
         self.inner
             .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
             .query(&KeyQuery { key: *addr })
-            .get::<Vec<Election>>("v1/elections/active")
+            .get("v1/elections/active")
             .unwrap()
     }
 
@@ -247,7 +245,7 @@ impl ElectionApi {
         self.inner
             .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
             .query(&KeyQuery { key: id })
-            .get::<HashMap<i32, u32>>("v1/elections/result")
+            .get("v1/elections/result")
             .unwrap()
     }
 }
@@ -280,6 +278,8 @@ fn create_testkit_with_time() -> (TestKit, ElectionApi, MockTimeProvider) {
     let api = ElectionApi {
         inner: testkit.api(),
     };
+
+    testkit.create_blocks_until(Height(2)); // Ensure that time is set
 
     (testkit, api, mock_provider)
 }
@@ -332,6 +332,7 @@ fn create_administration() {
 }
 
 #[test]
+#[ignore = "not yet implemented"]
 fn select_administration_principals() {
     let (mut testkit, api) = create_testkit();
 
@@ -347,7 +348,7 @@ fn select_administration_principals() {
     api.assert_tx_status(tx_a1.object_hash(), &json!({"type": "success"}));
     api.assert_tx_status(tx_a2.object_hash(), &json!({"type": "success"}));
 
-    unimplemented!(); // FixMe: adapt this test for new version
+    // FixMe: adapt this test for new version
 
     //let snapshot = testkit.snapshot();
     //
@@ -368,9 +369,9 @@ fn select_administration_principals() {
 }
 
 #[test]
+#[ignore = "not yet implemented"]
 fn select_principals_elections() {
     //ToDo: Add participants selection
-    unimplemented!();
 }
 
 #[test]
@@ -382,10 +383,9 @@ fn issue_election() {
 
     testkit.create_block();
 
-    // FixMe: Unable to send empty vector
-    //let elections_before = api.get_active_elections(&author_address(&tx_administration));
-    //
-    //assert_eq!(elections_before.len(), 0);
+    let elections_before = api.get_active_elections(&author_address(&tx_administration));
+
+    assert!(elections_before.is_empty());
 
     let now = time_provider.time();
 
