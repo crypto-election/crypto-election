@@ -6,13 +6,13 @@ const TRANSACTION_URL = '/api/explorer/v1/transactions'
 const PER_PAGE = 10
 const SERVICE_ID = 128
 
-const TX_CreateParticipant_ID = 2
-const TX_IssueElection_ID = 1
-const TABLE_INDEX = 0
+const TX_CREATE_PARTICIPANT_ID = 0;
+const TX_CREATE_ADMINISTRATION_ID = 1;
+const TX_ISSUE_ELECTION_ID = 2;
+const TX_VOTE_ID = 3;
+const TX_SUBMIT_LOCATION_ID = 4;
 
-//const TX_WALLET_ID = 2
-//const TX_TRANSFER_ID = 0
-//const TX_ISSUE_ID = 1
+const TABLE_INDEX = 0
 
 // MyCode
 let Participant = Exonum.newType(proto.crypto_election.core.Participant);
@@ -20,70 +20,36 @@ let Participant = Exonum.newType(proto.crypto_election.core.Participant);
 
 //MyCode
 
-function CreateParticipantTransaction(publicKey){
-  return Exonum.newTransaction({
-    author: publicKey,
-    service_id: SERVICE_ID,
-    message_id: TX_CreateParticipant_ID,
-    schema: proto.crypto_election.core.CreateParticipant
-  })
-}
+const CreateParticipantTransaction = new Exonum.Transaction({
+  serviceId: SERVICE_ID,
+  methodId: TX_CREATE_PARTICIPANT_ID,
+  schema: proto.crypto_election.core.CreateParticipant,
+});
 
-function CreateAdministrationTransaction(publicKey){
-  return Exonum.newTransaction({
-    author: publicKey,
-    service_id: SERVICE_ID,
-    message_id: TX_CreateAdministration_ID,
-    schema: proto.crypto_election.core.CreateAdministration
-  })
-}
+const CreateAdministrationTransaction = new Exonum.Transaction({
+  serviceId: SERVICE_ID,
+  methodId: TX_CREATE_ADMINISTRATION_ID,
+  schema: proto.crypto_election.core.CreateAdministration,
+});
 
-function IssueElectionTransaction(publicKey){
-  return Exonum.newTransaction({
-    author: publicKey,
-    service_id: SERVICE_ID,
-    message_id: TX_IssueElection_ID,
-    schema: proto.crypto_election.core.IssueElection
-  })
-}
+const IssueElectionTransaction = new Exonum.Transaction({
+  serviceId: SERVICE_ID,
+  methodId: TX_ISSUE_ELECTION_ID,
+  schema: proto.crypto_election.core.IssueElection,
+});
 
-function VoteTransaction(publicKey){
-  return Exonum.newTransaction({
-    author: publicKey,
-    service_id: SERVICE_ID,
-    message_id: TX_Vote_ID,
-    schema: proto.crypto_election.core.Vote
-  })
-}
+const VoteTransaction = new Exonum.Transaction({
+  serviceId: SERVICE_ID,
+  methodId: TX_VOTE_ID,
+  schema: proto.crypto_election.core.Vote,
+})
+
+const SubmitLocationTransaction = new Exonum.Transaction({
+  serviceId: SERVICE_ID,
+  methodId: TX_SUBMIT_LOCATION_ID,
+  schema: proto.crypto_election.core.SubmitLocation,
+})
 //End My code
-
-/*function TransferTransaction(publicKey) {
-  return Exonum.newTransaction({
-    author: publicKey,
-    service_id: SERVICE_ID,
-    message_id: TX_TRANSFER_ID,
-    schema: proto.exonum.examples.cryptocurrency_advanced.Transfer
-  })
-}
-
-function IssueTransaction(publicKey) {
-  return Exonum.newTransaction({
-    author: publicKey,
-    service_id: SERVICE_ID,
-    message_id: TX_ISSUE_ID,
-    schema: proto.exonum.examples.cryptocurrency_advanced.Issue
-  })
-}
-
-function CreateTransaction(publicKey) {
-  return Exonum.newTransaction({
-    author: publicKey,
-    service_id: SERVICE_ID,
-    message_id: TX_WALLET_ID,
-    schema: proto.exonum.examples.cryptocurrency_advanced.CreateWallet
-  })
-}*/
-
 
 //MyCode 2
 function getTransaction(transaction, publicKey) {
@@ -99,17 +65,35 @@ function getTransaction(transaction, publicKey) {
 }
 
 
-/*function getTransaction(transaction, publicKey) {
-  if (transaction.name) {
-    return new CreateTransaction(publicKey)
+function deserializeTx (transaction) {
+  const txTypes = [
+    CreateParticipantTransaction,
+    CreateAdministrationTransaction, 
+    IssueElectionTransaction,
+    VoteTransaction,
+    SubmitLocationTransaction,
+  ];
+  for (const tx of txTypes) {
+    const txData = tx.deserialize(Exonum.hexadecimalToUint8Array(transaction))
+    if (txData) {
+      return Object.assign({}, txData.payload, {
+        hash: txData.hash(),
+        to: txData.payload.to ? Exonum.uint8ArrayToHexadecimal(txData.payload.to.data) : undefined
+      })
+    }
   }
+  return { name: 'initialTx' }
+}
 
-  if (transaction.to) {
-    return new TransferTransaction(publicKey)
-  }
-
-  return new IssueTransaction(publicKey)
-}*/
+/**
+ * Data for {@link CreateParticipantTransaction}
+ * @typedef {Object} CreateParticipantTransactionData
+ * @prop {string} name            - Participant`s name
+ * @prop {string} email           - Participant`s email
+ * @prop {string} phone_number    - Participant`s phone number
+ * @prop {ArrayBuffer?} residence - Participant`s residence
+ * @prop {string} pass_code       - Participant`s passport code
+ */
 
 module.exports = {
   install(Vue) {
@@ -122,21 +106,17 @@ module.exports = {
         return Exonum.randomUint64()
       },
 
-      createParticipant(keyPair, name, email, phone_number, residence, pass_code) {
+      /**
+       * Sends {@link CreateParticipantTransaction}.
+       * @param {*} keyPair 
+       * @param {CreateParticipantTransactionData} data - Transcation data
+       */
+      createParticipant(keyPair, data) {
         // Describe transaction
-        const transaction = new CreateParticipantTransaction(keyPair.publicKey)
-
-        // Transaction data
-        const data = {
-          name: name,
-          email: email,
-          phone_number: phone_number,
-          residence: residence,
-          pass_code: pass_code
-        }
+        const transaction = CreateParticipantTransaction.create(data, keyPair.publicKey).serialize()
 
         // Send transaction into blockchain
-        return transaction.send(TRANSACTION_URL, data, keyPair.secretKey)
+        return Exonum.send(TRANSACTION_URL, transaction)
       },
 
       addFunds(keyPair, amountToAdd, seed) {
@@ -169,18 +149,16 @@ module.exports = {
       },
 
       getWallet(publicKey) {
-        return axios.get('/api/services/configuration/v1/configs/actual').then(response => {
+        return axios.get('/api/services/supervisor/consensus-config').then(response => {
           // actual list of public keys of validators
-          const validators = response.data.config.validator_keys.map(validator => {
-            return validator.consensus_key
-          })
+          const validators = response.data.config.validator_keys.map(validator => validator.consensus_key)
 
           return axios.get(`/api/services/cryptocurrency/v1/wallets/info?pub_key=${publicKey}`)
             .then(response => response.data)
             .then(data => {
               return Exonum.verifyBlock(data.block_proof, validators).then(() => {
                 // verify table timestamps in the root tree
-                const tableRootHash = Exonum.verifyTable(data.wallet_proof.to_table, data.block_proof.block.state_hash, SERVICE_ID, TABLE_INDEX)
+                const tableRootHash = Exonum.verifyTable(data.wallet_proof.to_table, data.block_proof.block.state_hash, "election.participants")
 
                 // find wallet in the tree of all wallets
                 const walletProof = new Exonum.MapProof(data.wallet_proof.to_wallet, Exonum.PublicKey, Wallet)
