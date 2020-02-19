@@ -18,7 +18,7 @@
                     placeholder="Введите ваш логин"
                     maxlength="260"
                     required
-                  />
+                  >
                 </div>
                 <!--Email-->
                 <div class="form-group">
@@ -31,7 +31,7 @@
                     placeholder="Введите email"
                     maxlength="260"
                     required
-                  />
+                  >
                 </div>
                 <!--Phone-->
                 <div class="form-group">
@@ -45,7 +45,7 @@
                     placeholder="80XXXXXXXXX"
                     maxlength="260"
                     required
-                  />
+                  >
                 </div>
                 <!--Residence-->
                 <div class="form-group">
@@ -58,7 +58,7 @@
                     class="form-control"
                     placeholder="Введите вашу резиденцию (?)"
                     maxlength="260"
-                  />
+                  >
                 </div>
                 <!--Pass_code-->
                 <div class="form-group">
@@ -71,7 +71,7 @@
                     placeholder="Введите данные паспорта"
                     maxlength="260"
                     required
-                  />
+                  >
                 </div>
                 <button type="submit" class="btn btn-lg btn-block btn-primary">Регистрация</button>
               </form>
@@ -86,7 +86,7 @@
                     class="form-control"
                     placeholder="Enter secret key"
                     required
-                  />
+                  >
                 </div>
                 <button type="submit" class="btn btn-lg btn-block btn-primary">Log in</button>
               </form>
