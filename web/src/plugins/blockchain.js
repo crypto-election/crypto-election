@@ -113,7 +113,7 @@ module.exports = {
        */
       createParticipant(keyPair, data) {
         // Describe transaction
-        const transaction = CreateParticipantTransaction.create(data, keyPair.publicKey).serialize()
+        const transaction = CreateParticipantTransaction.create(data, keyPair).serialize()
 
         // Send transaction into blockchain
         return Exonum.send(TRANSACTION_URL, transaction)

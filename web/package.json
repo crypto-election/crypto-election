@@ -5,7 +5,7 @@
   "author": "Exonum Team <exonum@bitfury.com>",
   "license": "Apache-2.0",
   "scripts": {
-    "proto": "pbjs --keep-case -t static-module --path node_modules/exonum-client/proto ../proto/db_models.proto ../proto/transactions.proto -o ./proto/stubs.js",
+    "proto": "pbjs --keep-case -t static-module --root crypto_election --path node_modules/exonum-client/proto ../proto/db_models.proto ../proto/transactions.proto -o ./proto/stubs.js",
     "lint": "eslint --ext .js,.vue src test",
     "compile": "webpack",
     "test": "jest",

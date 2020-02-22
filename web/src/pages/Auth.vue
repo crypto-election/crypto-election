@@ -182,7 +182,7 @@ module.exports = {
           name: this.name,
           email: this.email,
           phone_number: this.phone_number,
-          residence: this.residence,
+          //residence: this.residence,
           pass_code: this.pass_code
         });
 
