@@ -7,14 +7,11 @@ import Notify from './plugins/notify'
 import Blockchain from './plugins/blockchain'
 import App from './App.vue'
 import store from './store'
-//Install Vuelidate
-import Vuelidate from 'vuelidate'
 
 Vue.use(numeral)
 Vue.use(Validate)
 Vue.use(Notify)
 Vue.use(Blockchain)
-Vue.use(Vuelidate)
 
 new Vue({
   el: '#app',
