@@ -8,6 +8,6 @@ fn main() -> Result<(), Error> {
 
     NodeBuilder::new()
         .with_rust_service(exonum_time::TimeServiceFactory::default())
-        .with_default_rust_service(election::service::ElectionService)
+        .with_rust_service(election::service::ElectionService)
         .run()
 }

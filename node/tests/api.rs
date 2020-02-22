@@ -250,38 +250,42 @@ impl ElectionApi {
     }
 }
 
-fn create_testkit() -> (TestKit, ElectionApi) {
-    let mut testkit = TestKitBuilder::validator()
-        .with_default_rust_service(ExplorerFactory)
-        .with_default_rust_service(ElectionService)
-        .build();
-    let api = ElectionApi {
-        inner: testkit.api(),
-    };
-    (testkit, api)
-}
+fn create_test_kit() -> (TestKit, ElectionApi, MockTimeProvider) {
+    use crypto_election_node::model::transactions::Config;
 
-fn create_testkit_with_time() -> (TestKit, ElectionApi, MockTimeProvider) {
     let mock_provider = MockTimeProvider::new(SystemTime::now().into());
+
     let time_service = TimeServiceFactory::with_provider(mock_provider.clone());
     let time_service_artifact = time_service.artifact_id();
-    let mut testkit = TestKitBuilder::validator()
+
+    let election_service = ElectionService;
+    let election_service_artifact = election_service.artifact_id();
+
+    let mut test_kit = TestKitBuilder::validator()
         .with_default_rust_service(ExplorerFactory)
         .with_rust_service(time_service)
-        .with_default_rust_service(ElectionService)
+        .with_rust_service(election_service)
         .with_artifact(time_service_artifact.clone())
         .with_instance(
             time_service_artifact.into_default_instance(TIME_SERVICE_ID, TIME_SERVICE_NAME),
         )
+        .with_artifact(election_service_artifact.clone())
+        .with_instance(
+            election_service_artifact
+                .into_default_instance(BLOCKCHAIN_SERVICE_ID, BLOCKCHAIN_SERVICE_NAME)
+                .with_constructor(Config {
+                    time_service_name: TIME_SERVICE_NAME.to_owned(),
+                }),
+        )
         .build();
 
     let api = ElectionApi {
-        inner: testkit.api(),
+        inner: test_kit.api(),
     };
 
-    testkit.create_blocks_until(Height(2)); // Ensure that time is set
+    test_kit.create_blocks_until(Height(2)); // Ensure that time is set
 
-    (testkit, api, mock_provider)
+    (test_kit, api, mock_provider)
 }
 
 fn empty_polygon() -> Polygon {
@@ -293,7 +297,7 @@ fn empty_polygon() -> Polygon {
 
 #[test]
 fn create_participant() {
-    let (mut testkit, api) = create_testkit();
+    let (mut test_kit, api, _) = create_test_kit();
 
     let (tx, _) = api.create_participant(
         participant1::NAME,
@@ -303,7 +307,7 @@ fn create_participant() {
         participant1::PASS_CODE,
     );
 
-    testkit.create_block();
+    test_kit.create_block();
 
     api.assert_tx_status(tx.object_hash(), &json!({"type": "success"}));
 
@@ -318,11 +322,11 @@ fn create_participant() {
 
 #[test]
 fn create_administration() {
-    let (mut testkit, api) = create_testkit();
+    let (mut test_kit, api, _) = create_test_kit();
 
     let (tx, _) = api.create_administration(administration1::NAME, &None, &empty_polygon());
 
-    testkit.create_block();
+    test_kit.create_block();
 
     api.assert_tx_status(tx.object_hash(), &json!({"type": "success"}));
 
@@ -334,7 +338,7 @@ fn create_administration() {
 #[test]
 #[ignore = "not yet implemented"]
 fn select_administration_principals() {
-    let (mut testkit, api) = create_testkit();
+    let (mut test_kit, api, _) = create_test_kit();
 
     let (tx_a1, _) = api.create_administration(administration1::NAME, &None, &empty_polygon());
     let (tx_a2, _) = api.create_administration(
@@ -343,14 +347,14 @@ fn select_administration_principals() {
         &empty_polygon(),
     );
 
-    testkit.create_block();
+    test_kit.create_block();
 
     api.assert_tx_status(tx_a1.object_hash(), &json!({"type": "success"}));
     api.assert_tx_status(tx_a2.object_hash(), &json!({"type": "success"}));
 
     // FixMe: adapt this test for new version
 
-    //let snapshot = testkit.snapshot();
+    //let snapshot = test_kit.snapshot();
     //
     //let schema = ElectionSchema::new(&snapshot);
     //
@@ -376,12 +380,12 @@ fn select_principals_elections() {
 
 #[test]
 fn issue_election() {
-    let (mut testkit, api, time_provider) = create_testkit_with_time();
+    let (mut test_kit, api, time_provider) = create_test_kit();
 
     let (tx_administration, key_administration) =
         api.create_administration(administration1::NAME, &None, &empty_polygon());
 
-    testkit.create_block();
+    test_kit.create_block();
 
     let elections_before = api.get_active_elections(&author_address(&tx_administration));
 
@@ -397,7 +401,7 @@ fn issue_election() {
         &key_administration,
     );
 
-    testkit.create_block();
+    test_kit.create_block();
 
     api.assert_tx_status(
         create_election_tx.object_hash(),
@@ -411,7 +415,7 @@ fn issue_election() {
 
 #[test]
 fn election_results_counting() {
-    let (mut testkit, api, time_provider) = create_testkit_with_time();
+    let (mut test_kit, api, time_provider) = create_test_kit();
     let (_, key_alice) = api.create_participant(
         participant1::NAME,
         participant1::EMAIL,
@@ -431,7 +435,7 @@ fn election_results_counting() {
     let (tx_administration, key_administration) =
         api.create_administration(administration1::NAME, &None, &empty_polygon());
 
-    testkit.create_block();
+    test_kit.create_block();
 
     let now = time_provider.time();
 
@@ -443,7 +447,7 @@ fn election_results_counting() {
         &key_administration,
     );
 
-    testkit.create_block();
+    test_kit.create_block();
 
     api.assert_tx_status(
         create_election_tx.object_hash(),
@@ -463,7 +467,7 @@ fn election_results_counting() {
     let tx_vote_alice = api.vote(election.addr, options[0].id, &key_alice);
     let tx_vote_bob = api.vote(election.addr, options[2].id, &key_bob);
 
-    testkit.create_block();
+    test_kit.create_block();
 
     api.assert_tx_status(tx_vote_alice.object_hash(), &json!({"type": "success"}));
     api.assert_tx_status(tx_vote_bob.object_hash(), &json!({"type": "success"}));

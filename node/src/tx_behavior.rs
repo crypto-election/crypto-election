@@ -6,7 +6,6 @@ use exonum::{
 };
 
 use crate::{
-    constant,
     model::{self, transactions::*},
     schema::SchemaImpl,
     service::ElectionService,
@@ -106,6 +105,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
         let (voter, tx_hash) = extract_info(&ctx)?;
 
         let mut schema = SchemaImpl::new(ctx.service_data());
+        let config = schema.config.get().expect("Can't read service config");
 
         if schema.public.participants.get(&voter).is_none() {
             return Err(Error::ParticipantNotFound.into());
@@ -116,7 +116,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
             Some(election) => {
                 let time_schema: exonum_time::TimeSchema<_> = ctx
                     .data()
-                    .service_schema(constant::TIME_SERVICE_NAME)
+                    .service_schema(config.time_service_name.as_str())
                     .unwrap();
                 let now = time_schema.time.get().expect("can not get time");
                 if election.not_started_yet(now) {
@@ -157,6 +157,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
         let (tx_author, tx_hash) = extract_info(&ctx)?;
 
         let mut schema = SchemaImpl::new(ctx.service_data());
+        let config = schema.config.get().expect("Can't read service config");
 
         if schema.public.participants.get(&tx_author).is_none() {
             return Err(Error::ParticipantNotFound.into());
@@ -169,7 +170,6 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
                 .public
                 .administrations
                 .values()
-                .into_iter()
                 .filter(|a| geo::Polygon::<_>::from(a.area.clone()).contains(&point))
                 .collect::<Vec<model::Administration>>();
 
@@ -187,7 +187,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
 
         let time_schema: exonum_time::TimeSchema<_> = ctx
             .data()
-            .service_schema(constant::TIME_SERVICE_NAME)
+            .service_schema(config.time_service_name.as_str())
             .unwrap();
         let now = time_schema.time.get().expect("can not get time");
 

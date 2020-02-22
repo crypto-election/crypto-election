@@ -6,6 +6,14 @@ use exonum_proto::ProtobufConvert;
 use super::{geo, wrappers::OptionalContainer, AdministrationAddress};
 use crate::proto;
 
+/// Election configuration parameters.
+#[derive(Clone, Debug, Serialize, Deserialize, ProtobufConvert, BinaryValue, ObjectHash)]
+#[protobuf_convert(source = "proto::Config")]
+pub struct Config {
+    /// Time oracle service name.
+    pub time_service_name: String,
+}
+
 #[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
 #[protobuf_convert(source = "proto::CreateParticipant", serde_pb_convert)]
 pub struct CreateParticipant {
@@ -46,4 +54,5 @@ pub struct Vote {
 pub struct SubmitLocation {
     pub position: geo::Coordinate,
     pub date: DateTime<Utc>,
+    // ToDo: add seed field
 }

@@ -24,6 +24,7 @@ exonum-merkledb = { git = "https://github.com/integrer/exonum", branch = "master
 exonum-proto = { git = "https://github.com/integrer/exonum", branch = "master" }
 exonum-cli = { git = "https://github.com/integrer/exonum", branch = "master" }
 exonum-rust-runtime = { git = "https://github.com/integrer/exonum", branch = "master" }
+exonum-supervisor = { git = "https://github.com/integrer/exonum", branch = "master" }
 exonum-crypto = { git = "https://github.com/integrer/exonum", branch = "master" }
 exonum-time = { git = "https://github.com/integrer/exonum", branch = "master" }
 

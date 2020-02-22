@@ -6,12 +6,12 @@ use exonum::{
     crypto::Hash,
     merkledb::{
         access::{Access, FromAccess, RawAccessMut},
-        Group, ObjectHash, ProofListIndex, ProofMapIndex, RawProofMapIndex,
+        Entry, Group, ObjectHash, ProofListIndex, ProofMapIndex, RawProofMapIndex,
     },
 };
 use exonum_derive::{FromAccess, RequireArtifact};
 
-use crate::model::{geo, wrappers, *};
+use crate::model::{geo, transactions::Config, wrappers, *};
 
 mod iter;
 
@@ -28,6 +28,8 @@ pub(crate) struct SchemaImpl<T: Access> {
     /// Public part of schema.
     #[from_access(flatten)]
     pub public: Schema<T>,
+    /// Configuration
+    pub config: Entry<T::Base, Config>,
     /// History for specific participants.
     pub participant_history: Group<T, ParticipantAddress, ProofListIndex<T::Base, Hash>>,
     /// History for specific administrations.
