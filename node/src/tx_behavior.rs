@@ -191,7 +191,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
             .unwrap();
         let now = time_schema.time.get().expect("can not get time");
 
-        schema.submit_participant_location(&tx_author, now, &location);
+        schema.submit_participant_location(&tx_author, now, &location, &tx_hash);
 
         Ok(())
     }

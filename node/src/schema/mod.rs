@@ -208,14 +208,28 @@ where
 
     pub fn submit_participant_location(
         &mut self,
-        participant: &ParticipantAddress,
+        participant_addr: &ParticipantAddress,
         date: DateTime<Utc>,
         &location: &AdministrationAddress,
+        transaction: &Hash,
     ) {
         self.public
             .participant_location_history
-            .get(participant)
+            .get(participant_addr)
             .push((date, location).into());
+        let participant = {
+            let mut history = self.participant_history.get(&participant_addr);
+            history.push(*transaction);
+
+            let history_hash = history.object_hash();
+            let participant = self.public.participants.get(&participant_addr).unwrap();
+            Participant {
+                history_len: history.len(),
+                history_hash,
+                ..participant
+            }
+        };
+        self.public.participants.put(&participant_addr, participant);
     }
     //endregion
 
