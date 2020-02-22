@@ -4,5 +4,10 @@ target
 */target
 */Dockerfile
 */.dockerignore
+
+web/node-modules
+web/dist
+web/proto/*
+
 .git
 .gitignore
