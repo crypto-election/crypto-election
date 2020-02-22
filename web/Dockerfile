@@ -4,11 +4,12 @@ RUN apt-get update \
     && apt-get install -y software-properties-common \
     && add-apt-repository ppa:maarten-fonville/protobuf \
     && apt-get update \
-    && apt-get install -y curl gcc cpp \
-    libssl-dev pkg-config libsodium-dev libsnappy-dev \
+    && apt-get install -y curl git gcc cpp \
+    libssl-dev pkg-config libsodium-dev \
     libprotobuf-dev protobuf-compiler \
     && curl -sL https://deb.nodesource.com/setup_10.x | bash \
-    && apt-get install -y nodejs
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src
 ADD proto/ proto/

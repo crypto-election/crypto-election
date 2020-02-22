@@ -11,7 +11,8 @@ RUN apt-get update \
     build-essential libsodium-dev libsnappy-dev \
     librocksdb-dev pkg-config clang-7 lldb-7 lld-7 \
     libprotobuf-dev protobuf-compiler \
-    python3-pip python3-setuptools
+    python3-pip python3-setuptools \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV RUSTUP_HOME=/usr
 ENV CARGO_HOME=/usr
