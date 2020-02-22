@@ -38,14 +38,13 @@ pub(crate) struct SchemaImpl<T: Access> {
     pub election_history: Group<T, ElectionAddress, ProofListIndex<T::Base, Hash>>,
 }
 
+type TimePositionInfo = TupleContainer<(DateTime<Utc>, AdministrationAddress)>;
+
 #[derive(Debug, FromAccess, RequireArtifact)]
 pub struct Schema<T: Access> {
     pub participants: RawProofMapIndex<T::Base, ParticipantAddress, Participant>,
-    pub participant_location_history: Group<
-        T,
-        ParticipantAddress,
-        ProofListIndex<T::Base, TupleContainer<(DateTime<Utc>, AdministrationAddress)>>,
-    >,
+    pub participant_location_history:
+        Group<T, ParticipantAddress, ProofListIndex<T::Base, TimePositionInfo>>,
     pub administrations: RawProofMapIndex<T::Base, AdministrationAddress, Administration>,
     pub elections: ProofMapIndex<T::Base, ElectionAddress, Election>,
     /// Elections of specific administrations.

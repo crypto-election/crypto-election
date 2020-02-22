@@ -62,7 +62,7 @@ impl ElectionApi {
         let key_pair = KeyPair::random();
 
         let tx = key_pair.create_participant(
-            BLOCKCHAIN_SERVICE_ID as u32,
+            BLOCKCHAIN_SERVICE_ID,
             CreateParticipant {
                 name: name.to_owned(),
                 email: email.to_owned(),
@@ -86,7 +86,7 @@ impl ElectionApi {
         let key_pair = KeyPair::random();
 
         let tx = key_pair.create_administration(
-            BLOCKCHAIN_SERVICE_ID as u32,
+            BLOCKCHAIN_SERVICE_ID,
             CreateAdministration {
                 name: name.to_owned(),
                 principal_key: principal.map(pub_key_address).into(),
@@ -106,7 +106,7 @@ impl ElectionApi {
         key_pair: &KeyPair,
     ) -> Verified<AnyTx> {
         let tx = key_pair.issue_election(
-            BLOCKCHAIN_SERVICE_ID as u32,
+            BLOCKCHAIN_SERVICE_ID,
             IssueElection {
                 name: name.to_owned(),
                 start_date: start_date.to_owned(),
@@ -120,7 +120,7 @@ impl ElectionApi {
 
     fn vote(&self, election_id: i64, option_id: i32, key_pair: &KeyPair) -> Verified<AnyTx> {
         let tx = key_pair.vote(
-            BLOCKCHAIN_SERVICE_ID as u32,
+            BLOCKCHAIN_SERVICE_ID,
             Vote {
                 election_id,
                 option_id,

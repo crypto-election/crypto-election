@@ -14,7 +14,7 @@ use exonum_merkledb::{
     access::RawAccess, proof_map::Raw, BinaryKey, BinaryValue, MapProof, ObjectHash,
     ProofListIndex, Snapshot,
 };
-use exonum_rust_runtime::api::{self, HttpStatusCode, ServiceApiBuilder, ServiceApiState};
+use exonum_rust_runtime::api::{self, ServiceApiBuilder, ServiceApiState};
 
 #[derive(Debug, Clone, Copy)]
 pub struct PublicApi;
