@@ -69,7 +69,17 @@ describe('Interaction with blockchain', () => {
   it('should create new wallet', async () => {
     const name = 'John Doe'
 
-    await expect(Vue.prototype.$blockchain.createWallet(keyPair, name)).resolves
+    await expect(
+        Vue.prototype.$blockchain
+            .createParticipant(
+                keyPair,
+                {
+                  name,
+                  email: "",
+                  phone_number: "",
+                  pass_code: "",
+                  residence: null
+                })).resolves
   })
 
   it('should add funds', async () => {
