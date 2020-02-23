@@ -6,76 +6,115 @@ use exonum::{
     crypto::{Hash, PublicKey},
     messages::{AnyTx, Verified},
 };
-use exonum_merkledb::{proof_map::Raw, ListProof, MapProof};
+use exonum_merkledb::{
+    BinaryKey, BinaryValue, Group, ListProof, MapProof, ProofListIndex, Snapshot,
+};
 
-use super::{Administration, AdministrationAddress, Election, Participant, ParticipantAddress};
-use exonum_merkledb::indexes::proof_map::Hashed;
+use super::{
+    wrappers::{HashedKeyModeWrapper, RawKeyModeWrapper, TypeWrapper},
+    Administration, AdministrationAddress, Election, Participant, ParticipantAddress,
+};
+use crate::schema::IndexPair;
+use exonum::blockchain::IndexProof;
+use exonum::runtime::BlockchainData;
+use exonum_merkledb::access::Access;
+use exonum_merkledb::proof_map::ToProofPath;
 
-pub type ParticipantInfo = Info<ParticipantAddress, Participant, RawKeyModeWrapper>;
-pub type AdministrationInfo = Info<AdministrationAddress, Administration, RawKeyModeWrapper>;
-pub type ElectionInfo = Info<i64, Election, HashedKeyModeWrapper>;
-
-/// KeyMode type container. Used for serializable storing KeyMode type.
-pub trait KeyModeWrapper: Serialize {
-    type KeyMode;
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RawKeyModeWrapper;
-
-impl KeyModeWrapper for RawKeyModeWrapper {
-    type KeyMode = Raw;
-}
+pub type ParticipantInfo = ProofedInfo<ParticipantAddress, Participant, RawKeyModeWrapper>;
+pub type AdministrationInfo = ProofedInfo<AdministrationAddress, Administration, RawKeyModeWrapper>;
+pub type ElectionInfo = ProofedInfo<i64, Election, HashedKeyModeWrapper>;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HashedKeyModeWrapper;
-
-impl KeyModeWrapper for HashedKeyModeWrapper {
-    type KeyMode = Hashed;
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Info<K, E: Debug, KMW: KeyModeWrapper + Debug>
+pub struct ProofedInfo<K, V: Debug, KeyMode: TypeWrapper + Debug>
 where
-    KMW::KeyMode: Debug,
+    KeyMode::Type: Debug,
 {
     pub block_proof: BlockProof,
-    pub object_proof: Proof<K, E, KMW>,
+    pub object_proof: Proof<K, V, KeyMode>,
     pub history: Option<History>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Proof<K, E, KMW: KeyModeWrapper>
+impl<K: ToOwned + BinaryKey, V: Debug + BinaryValue, KeyMode: TypeWrapper + Debug>
+    ProofedInfo<K, V, KeyMode>
 where
-    E: Debug,
+    KeyMode::Type: Debug,
 {
-    pub to_table: MapProof<String, Hash>,
-    pub to_object: MapProof<K, E, KMW::KeyMode>,
+    pub(crate) fn try_from_indexes<A: Access>(
+        blockchain_data: &BlockchainData<&dyn Snapshot>,
+        idx_name: &str,
+        key: K,
+        index_pair: IndexPair<A, K, V, KeyMode::Type>,
+    ) -> Result<ProofedInfo<K::Owned, V, KeyMode>, exonum_merkledb::Error>
+    where
+        KeyMode::Type: ToProofPath<K>,
+    {
+        let IndexProof {
+            block_proof,
+            index_proof,
+            ..
+        } = blockchain_data
+            .proof_for_service_index(idx_name)
+            .ok_or_else(|| {
+                exonum_merkledb::Error::new(format!("No such index with name '{}'", idx_name))
+            })?;
+
+        let (object_index, history_index) = index_pair;
+
+        Ok(ProofedInfo {
+            block_proof,
+            object_proof: Proof::new(index_proof, object_index.get_proof(key.to_owned())),
+            history: object_index
+                .get(&key)
+                .map(|_| History::from_indexes(blockchain_data, history_index, key)),
+        })
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct HashedInfo<K, E>
-where
-    E: Debug,
-{
-    pub block_proof: BlockProof,
-    pub object_proof: HashedProof<K, E>,
-    pub history: Option<History>,
+pub struct Proof<K, V: Debug, KeyMode: TypeWrapper> {
+    pub to_table: MapProof<String, Hash>,
+    pub to_object: MapProof<K, V, KeyMode::Type>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct HashedProof<K, E>
-where
-    E: Debug,
-{
-    pub to_table: MapProof<String, Hash>,
-    pub to_object: MapProof<K, E>,
+impl<K, V: Debug, KeyMode: TypeWrapper> Proof<K, V, KeyMode> {
+    pub fn new(
+        to_table: MapProof<String, Hash>,
+        to_object: MapProof<K, V, KeyMode::Type>,
+    ) -> Proof<K, V, KeyMode> {
+        Self {
+            to_table,
+            to_object,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct History {
     pub proof: ListProof<Hash>,
     pub transactions: Vec<Verified<AnyTx>>,
+}
+
+impl History {
+    pub(crate) fn from_indexes<A: Access, K: BinaryKey>(
+        blockchain_data: &BlockchainData<&dyn Snapshot>,
+        history_index: Group<A, K, ProofListIndex<A::Base, Hash>>,
+        key: K,
+    ) -> Self {
+        let history = history_index.get(&key);
+        let proof = history_index.get(&key).get_range_proof(..);
+
+        let transactions = blockchain_data.for_core().transactions();
+
+        let transactions = history
+            .iter()
+            .map(|record| transactions.get(&record).unwrap())
+            .collect();
+
+        Self {
+            proof,
+            transactions,
+        }
+    }
 }
 
 pub type PubKeyQuery = KeyQuery<PublicKey>;

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use exonum::{crypto::Hash, runtime::CallerAddress as Address};
 use exonum_derive::{BinaryValue, ObjectHash};
 use exonum_proto::ProtobufConvert;
+use exonum_merkledb::proof_map::{Raw, Hashed};
 
 use crate::proto;
 
@@ -121,4 +122,23 @@ impl<T: Default> Default for OptionalContainer<T> {
     fn default() -> OptionalContainer<T> {
         OptionalContainer(Default::default())
     }
+}
+
+/// KeyMode type container. Used for serializable storing KeyMode type.
+pub trait TypeWrapper: Serialize {
+    type Type;
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RawKeyModeWrapper;
+
+impl TypeWrapper for RawKeyModeWrapper {
+    type Type = Raw;
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HashedKeyModeWrapper;
+
+impl TypeWrapper for HashedKeyModeWrapper {
+    type Type = Hashed;
 }

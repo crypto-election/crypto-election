@@ -85,23 +85,19 @@ pub struct ElectionOption {
 
 impl Participant {
     /// Create a new `Participant`.
-    pub fn new(
+    pub fn from_transaction(
         &addr: &ParticipantAddress,
-        name: &str,
-        email: &str,
-        phone_number: &str,
-        pass_code: &str,
-        residence: &Option<AdministrationAddress>,
+        transaction: transactions::CreateParticipant,
         history_len: u64,
         history_hash: &Hash,
     ) -> Self {
         Self {
             addr,
-            name: name.to_owned(),
-            email: email.to_owned(),
-            phone_number: phone_number.to_owned(),
-            pass_code: pass_code.to_owned(),
-            residence: (*residence).into(),
+            name: transaction.name,
+            email: transaction.email,
+            phone_number: transaction.phone_number,
+            pass_code: transaction.pass_code,
+            residence: transaction.residence,
             history_len,
             history_hash: *history_hash,
         }

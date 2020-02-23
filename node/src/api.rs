@@ -1,21 +1,12 @@
 use std::{collections::HashMap, fmt::Debug, iter::FromIterator};
 
-use exonum::{
-    blockchain::IndexProof,
-    crypto::{Hash, PublicKey},
-    runtime::{BlockchainData, CallerAddress},
-};
-use exonum_merkledb::{
-    access::RawAccess, indexes::proof_map::ToProofPath, BinaryKey, BinaryValue, Group, ObjectHash,
-    ProofListIndex, ProofMapIndex, Snapshot,
-};
+use exonum::{crypto::PublicKey, runtime::CallerAddress};
 use exonum_rust_runtime::api::{self, ServiceApiBuilder, ServiceApiState};
 
 use crate::{
     model::{public_api::*, AdministrationAddress, Election},
     schema::SchemaImpl,
 };
-use exonum_merkledb::access::Access;
 
 /// Election public web api
 #[derive(Debug, Clone, Copy)]
@@ -41,49 +32,56 @@ impl PublicApi {
         state: &ServiceApiState,
         query: KeyQuery<PublicKey>,
     ) -> api::Result<ParticipantInfo> {
-        let schema = SchemaImpl::new(state.service_data());
-        let address = CallerAddress::from_key(query.key);
+        let index_pair = {
+            let schema = SchemaImpl::new(state.service_data());
+            (schema.public.participants, schema.participant_history)
+        };
 
-        Ok(Self::entity_info(
+        ProofedInfo::try_from_indexes(
             &state.data(),
             "participants",
-            &schema.public.participants,
-            address,
-            &schema.participant_history,
-        ))
+            CallerAddress::from_key(query.key),
+            index_pair,
+        )
+        .map_err(api::Error::internal)
     }
 
+    /// Gets complete administration info
+    ///
+    /// ## API address
+    /// `v1/administrations/info`
     pub fn administration_info(
         state: &ServiceApiState<'_>,
         query: KeyQuery<PublicKey>,
     ) -> api::Result<AdministrationInfo> {
-        let schema = SchemaImpl::new(state.service_data());
-        let address = CallerAddress::from_key(query.key);
+        let index_pair = {
+            let schema = SchemaImpl::new(state.service_data());
+            (schema.public.administrations, schema.administration_history)
+        };
+        let key = CallerAddress::from_key(query.key);
 
-        Ok(Self::entity_info(
-            &state.data(),
-            "administrations",
-            &schema.public.administrations,
-            address,
-            &schema.administration_history,
-        ))
+        ProofedInfo::try_from_indexes(&state.data(), "administrations", key, index_pair)
+            .map_err(api::Error::internal)
     }
 
+    /// Gets complete election info
+    ///
+    /// ## API address
+    /// `v1/elections/info`
     pub fn election_info(
         state: &ServiceApiState,
         query: KeyQuery<i64>,
     ) -> api::Result<ElectionInfo> {
-        let schema = SchemaImpl::new(state.service_data());
+        let index_pair = {
+            let schema = SchemaImpl::new(state.service_data());
+            (schema.public.elections, schema.election_history)
+        };
 
-        Ok(Self::entity_info(
-            &state.data(),
-            "elections",
-            &schema.public.elections,
-            query.key,
-            &schema.election_history,
-        ))
+        ProofedInfo::try_from_indexes(&state.data(), "elections", query.key, index_pair)
+            .map_err(api::Error::internal)
     }
 
+    #[doc(hidden)]
     pub fn all_elections(state: &ServiceApiState, _: ()) -> api::Result<Vec<Election>> {
         Ok(SchemaImpl::new(state.service_data())
             .public
@@ -98,14 +96,26 @@ impl PublicApi {
     ) -> api::Result<Vec<Election>> {
         let schema = SchemaImpl::new(state.service_data());
 
-        let config = schema.config.get().expect("Can't read service config");
-
-        let time_schema: exonum_time::TimeSchema<_> = state
-            .data()
-            .service_schema(config.time_service_name.as_str())
-            .unwrap();
-
-        let now = time_schema.time.get().expect("can not get time");
+        let now = schema
+            .config
+            .get()
+            .ok_or_else(|| {
+                Box::new(exonum_merkledb::Error::new("Can not read service config"))
+                    as Box<dyn failure::Fail>
+            })
+            .and_then(|config| {
+                state
+                    .data()
+                    .service_schema(config.time_service_name.as_str())
+                    .map_err(|e| Box::new(e) as Box<dyn failure::Fail>)
+            })
+            .and_then(|time_schema: exonum_time::TimeSchema<_>| {
+                time_schema.time.get().ok_or_else(|| {
+                    Box::new(exonum_merkledb::Error::new("Can not get time"))
+                        as Box<dyn failure::Fail>
+                })
+            })
+            .map_err(api::Error::internal)?;
 
         schema
             .public
@@ -122,54 +132,5 @@ impl PublicApi {
             .public
             .election_results(query.key)
             .ok_or_else(api::Error::not_found)
-    }
-
-    fn entity_info<
-        A: Access,
-        K: BinaryKey + ObjectHash + Debug + ToOwned,
-        V: BinaryValue + ObjectHash + Debug,
-        KMW: KeyModeWrapper + Debug,
-    >(
-        blockchain_data: &BlockchainData<&dyn Snapshot>,
-        idx_name: &str,
-        object_index: &ProofMapIndex<A::Base, K, V, KMW::KeyMode>,
-        key: K,
-        history_index: &Group<A, K, ProofListIndex<A::Base, Hash>>,
-    ) -> Info<K::Owned, V, KMW>
-    where
-        KMW::KeyMode: ToProofPath<K> + Debug,
-    {
-        let IndexProof {
-            block_proof,
-            index_proof,
-            ..
-        } = blockchain_data.proof_for_service_index(idx_name).unwrap();
-
-        let proof = Proof {
-            to_table: index_proof,
-            to_object: object_index.get_proof(key.to_owned()),
-        };
-
-        let history = object_index.get(&key).map(|_| {
-            let history = history_index.get(&key);
-            let proof = history.get_range_proof(..);
-
-            let transactions = blockchain_data.for_core().transactions();
-            let transactions = history
-                .iter()
-                .map(|record| transactions.get(&record).unwrap())
-                .collect();
-
-            History {
-                proof,
-                transactions,
-            }
-        });
-
-        Info {
-            block_proof,
-            object_proof: proof,
-            history,
-        }
     }
 }

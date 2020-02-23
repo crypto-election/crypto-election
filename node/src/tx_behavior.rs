@@ -44,15 +44,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
         let mut schema = SchemaImpl::new(ctx.service_data());
 
         if schema.public.participants.get(&addr).is_none() {
-            schema.create_participant(
-                &addr,
-                &arg.name,
-                &arg.email,
-                &arg.phone_number,
-                &arg.residence.0,
-                &arg.pass_code,
-                &tx_hash,
-            );
+            schema.create_participant(&addr, arg, &tx_hash);
             Ok(())
         } else {
             Err(Error::ParticipantAlreadyExists.into())

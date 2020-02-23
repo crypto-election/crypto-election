@@ -11,7 +11,11 @@ use exonum::{
 };
 use exonum_derive::{FromAccess, RequireArtifact};
 
-use crate::model::{geo, transactions::Config, wrappers, *};
+use crate::model::{
+    geo,
+    transactions::{Config, CreateParticipant},
+    wrappers, *,
+};
 
 mod iter;
 
@@ -39,6 +43,10 @@ pub(crate) struct SchemaImpl<T: Access> {
 }
 
 type TimePositionInfo = TupleContainer<(DateTime<Utc>, AdministrationAddress)>;
+pub(crate) type IndexPair<A, K, V, KeyMode> = (
+    ProofMapIndex<<A as Access>::Base, K, V, KeyMode>,
+    Group<A, K, ProofListIndex<<A as Access>::Base, Hash>>,
+);
 
 #[derive(Debug, FromAccess, RequireArtifact)]
 pub struct Schema<T: Access> {
@@ -182,27 +190,14 @@ where
     pub fn create_participant(
         &mut self,
         key: &ParticipantAddress,
-        name: &str,
-        email: &str,
-        phone_number: &str,
-        residence: &Option<AdministrationAddress>,
-        pass_code: &str,
+        participant: CreateParticipant,
         transaction: &Hash,
     ) {
         let participant = {
             let mut history = self.participant_history.get(key);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Participant::new(
-                key,
-                name,
-                email,
-                phone_number,
-                pass_code,
-                residence,
-                history.len(),
-                &history_hash,
-            )
+            Participant::from_transaction(key, participant, history.len(), &history_hash)
         };
         self.public.participants.put(key, participant);
     }
