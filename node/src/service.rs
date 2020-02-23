@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[derive(Debug, ServiceFactory, ServiceDispatcher)]
-#[service_dispatcher(implements("ElectionInterface"))]
+#[service_dispatcher(implements("ElectionInterface", raw = "Configure<Params = Config>"))]
 #[service_factory(proto_sources = "crate::proto")]
 pub struct ElectionService;
 
