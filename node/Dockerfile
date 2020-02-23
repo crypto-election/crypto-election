@@ -39,12 +39,13 @@ RUN mkdir node/src/ \
 ###############################################################################
 COPY node/build.rs node/build.rs
 COPY node/src node/src
-COPY proto proto
 RUN cd node && cargo build --release && cargo install --path . \
     && rm -rf target ../target
 
 COPY node/launch.sh ./
 
 WORKDIR /usr/src/cfg
+
+COPY cfg/crypto-election.yml ./
 
 CMD ["../launch.sh"]

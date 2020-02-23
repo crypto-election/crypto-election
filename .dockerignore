@@ -5,9 +5,9 @@ target
 */Dockerfile
 */.dockerignore
 
-web/node-modules
-web/dist
-web/proto/*
+*/node_modules
+*/dist
+*/proto/*
 
 .git
 .gitignore

@@ -20,10 +20,20 @@ deadline_height: 10000
 supervisor_mode: "simple"
 
 artifacts:
+  time:
+    runtime: rust
+    name: "exonum-time"
+    version: "1.0.0-rc.1"
   cryptoelection:
     runtime: rust
     name: "crypto-election-node"
     version: "0.2.0"
+
 instances:
-  crypto-election:
+  time:
+    artifact: time
+  cryptoelection_blockchain_service:
     artifact: cryptoelection
+    config:
+      time_service_name: "time"
+      time_service_id: 2

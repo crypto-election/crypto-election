@@ -13,7 +13,7 @@ RUN apt-get update \
 
 WORKDIR /usr/src
 ADD proto/ proto/
-ADD web/package.json web/package-lock.json web/
+ADD web/package.json web/
 WORKDIR /usr/src/web
 RUN npm install
 

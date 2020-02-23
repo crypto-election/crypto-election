@@ -4,6 +4,10 @@ services:
         image: integrer/crypto-election-node:latest
         ports:
           - "8000:8000"
+#    exonum_runtime_mng:
+#        build:
+#            context: ./
+#            dockerfile: runtime/Dockerfile
     web:
         build:
             context: ./
