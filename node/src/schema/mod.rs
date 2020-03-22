@@ -67,7 +67,7 @@ pub struct Schema<T: Access> {
 
 impl<T: Access> SchemaImpl<T> {
     pub fn new(access: T) -> Self {
-        Self::from_root(access.clone()).unwrap()
+        Self::from_root(access).unwrap()
     }
 }
 
@@ -278,43 +278,48 @@ where
         options: &[String],
         transaction: &Hash,
     ) -> i64 {
-        let index = self.public.elections.keys().max().map_or(0, |i| i + 1);
+        let election_addr = self.public.elections.keys().max().map_or(0, |i| i + 1);
 
         let election = {
-            let mut history = self.election_history.get(&index);
+            let mut history = self.election_history.get(&election_addr);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Election::new(
-                index,
-                author_key,
-                name,
-                start_date,
-                finish_date,
-                &(options
-                    .iter()
-                    .scan(0, |counter, t| {
-                        Some(ElectionOption {
-                            id: {
-                                let cur_idx = *counter;
-                                *counter += 1;
-                                cur_idx
-                            },
-                            title: t.to_owned(),
-                        })
+
+            let options: Vec<ElectionOption> = options
+                .iter()
+                .scan(0, |counter, t| {
+                    Some(ElectionOption {
+                        id: {
+                            let cur_idx = *counter;
+                            *counter += 1;
+                            cur_idx
+                        },
+                        title: t.to_owned(),
                     })
-                    .collect()),
-                history.len(),
-                &history_hash,
-            )
+                })
+                .collect();
+
+            Election {
+                addr: election_addr,
+                name: name.to_owned(),
+                issuer: *author_key,
+                start_date: *start_date,
+                finish_date: *finish_date,
+                options,
+                history_len: history.len(),
+                history_hash,
+                is_cancelled: false,
+            }
         };
-        self.public.elections.put(&index, election);
+
+        self.public.elections.put(&election_addr, election);
 
         self.public
             .administration_elections
             .get(author_key)
-            .push(index);
+            .push(election_addr);
 
-        index
+        election_addr
     }
 
     pub fn vote(

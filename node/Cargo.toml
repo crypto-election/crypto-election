@@ -11,6 +11,7 @@ chrono = "0.4"
 time = "0.2"
 either = "1.5.3"
 failure = "0.1.6"
+anyhow = "1.0.27"
 
 # Serialization
 serde = "1.0"
@@ -30,6 +31,10 @@ exonum-time = { git = "https://github.com/integrer/exonum", branch = "master" }
 
 geo = "0.12.2"
 rand = "0.7"
+
+[dependencies.tokio]
+version = "0.2.13"
+features = ["blocking", "dns", "io-util", "macros", "rt-threaded", "tcp", "time"]
 
 [dev-dependencies]
 exonum-explorer-service = { git = "https://github.com/integrer/exonum", branch = "master" }

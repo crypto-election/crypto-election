@@ -9,7 +9,7 @@ import "exonum/crypto/types.proto";
 import "wrappers.proto";
 import "geo.proto";
 
-
+//region Database models
 message Participant {
     exonum.crypto.Hash addr = 1;
     string name = 2;
@@ -47,17 +47,44 @@ message ElectionOption {
     int32 id = 1;
     string title = 2;
 }
+//endregion
 
-message PolygonDef {
-    LineStringDef exterior = 1;
-    repeated LineStringDef interiors = 2;
+//region Transaction models
+/// Timestamping configuration.
+message Config {
+    // Time oracle service name.
+    string time_service_name = 1;
 }
 
-message LineStringDef {
-    repeated CoordinateDef items = 1;
+message CreateParticipant {
+    string name = 1;
+    string email = 2;
+    string phone_number = 3;
+    OptionalHash residence = 4;
+    string pass_code = 5;
 }
 
-message CoordinateDef {
-    double x = 1;
-    double y = 2;
+message CreateAdministration {
+    string name = 1;
+    OptionalHash principal_key = 2;
+    Polygon area = 3;
 }
+
+message IssueElection {
+    string name = 1;
+    google.protobuf.Timestamp start_date = 2;
+    google.protobuf.Timestamp finish_date = 3;
+    repeated string options = 4;
+}
+
+message Vote {
+    int64 election_id = 1;
+    int32 option_id = 2;
+    int64 seed = 3;
+}
+
+message SubmitLocation {
+    Coordinate position = 1;
+    google.protobuf.Timestamp date = 2;
+}
+//endregion

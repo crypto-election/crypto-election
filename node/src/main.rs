@@ -1,13 +1,13 @@
 use crypto_election_node as election;
-use exonum_cli::NodeBuilder;
+use exonum_cli::{NodeBuilder, Spec};
 
-use failure::Error;
-
-fn main() -> Result<(), Error> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     exonum::helpers::init_logger()?;
 
     NodeBuilder::new()
-        .with_rust_service(exonum_time::TimeServiceFactory::default())
-        .with_rust_service(election::service::ElectionService)
+        .with(Spec::new(exonum_time::TimeServiceFactory::default()))
+        .with(Spec::new(election::service::ElectionService))
         .run()
+        .await
 }

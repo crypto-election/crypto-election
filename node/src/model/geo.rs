@@ -2,6 +2,7 @@ use std::iter::FromIterator;
 
 use geo;
 
+use anyhow as failure;
 use exonum_derive::{BinaryValue, ObjectHash};
 use exonum_proto::ProtobufConvert;
 

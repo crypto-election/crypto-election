@@ -1,3 +1,5 @@
+use serde_json::json;
+
 pub mod participant1 {
     pub const NAME: &str = "Alice";
     pub const EMAIL: &str = "alice@example.com";
@@ -23,4 +25,8 @@ pub mod administration2 {
 pub mod election1 {
     pub const NAME: &str = "Choose your favorite color";
     pub const OPTIONS: &[&str] = &["red", "green", "blue"];
+}
+
+pub fn tx_status_success() -> serde_json::Value {
+    json!({"type": "success"})
 }

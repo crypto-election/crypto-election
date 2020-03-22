@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 
+use anyhow as failure;
 use exonum_derive::{BinaryValue, ObjectHash};
 use exonum_proto::ProtobufConvert;
 

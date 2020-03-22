@@ -1,7 +1,7 @@
 FROM ubuntu:18.04
 
 RUN apt-get update \
-    && apt-get install -y software-properties-common \
+    && apt-get install -y software-properties-common apt-utils \
     && add-apt-repository ppa:maarten-fonville/protobuf \
     && apt-get update \
     && apt-get install -y curl git gcc cpp \

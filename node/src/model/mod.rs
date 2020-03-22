@@ -12,6 +12,7 @@ use chrono::{DateTime, Utc};
 
 use exonum::{crypto::Hash, runtime::CallerAddress as Address};
 
+use anyhow as failure;
 use exonum_derive::{BinaryValue, ObjectHash};
 use exonum_proto::ProtobufConvert;
 
@@ -128,29 +129,6 @@ impl Administration {
 }
 
 impl Election {
-    pub fn new(
-        addr: ElectionAddress,
-        issuer: &AdministrationAddress,
-        name: &str,
-        start_date: &DateTime<Utc>,
-        finish_date: &DateTime<Utc>,
-        options: &Vec<ElectionOption>,
-        history_len: u64,
-        history_hash: &Hash,
-    ) -> Self {
-        Self {
-            addr,
-            issuer: *issuer,
-            name: name.to_owned(),
-            start_date: *start_date,
-            finish_date: *finish_date,
-            options: options.clone(),
-            is_cancelled: false,
-            history_len,
-            history_hash: *history_hash,
-        }
-    }
-
     pub fn is_active(&self, moment: DateTime<Utc>) -> bool {
         !self.is_cancelled && self.start_date <= moment && self.finish_date > moment
     }

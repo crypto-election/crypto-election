@@ -1,8 +1,4 @@
-mod constant;
-
 use std::{collections::HashMap, time::SystemTime};
-
-use serde_json::json;
 
 use chrono::{DateTime, Duration, Utc};
 
@@ -14,7 +10,6 @@ use exonum::{
 };
 use exonum_explorer_service::ExplorerFactory;
 use exonum_merkledb::ObjectHash;
-use exonum_rust_runtime::ServiceFactory;
 use exonum_testkit::{
     explorer::api::{TransactionQuery, TransactionResponse},
     ApiKind, TestKit, TestKitApi, TestKitBuilder,
@@ -35,6 +30,8 @@ use crypto_election_node::{
 
 use constant::*;
 
+mod constant;
+
 const TIME_SERVICE_ID: InstanceId = 102;
 const TIME_SERVICE_NAME: &str = "time-oracle";
 
@@ -51,7 +48,7 @@ struct ElectionApi {
 }
 
 impl ElectionApi {
-    fn create_participant(
+    async fn create_participant(
         &self,
         name: &str,
         email: &str,
@@ -72,12 +69,12 @@ impl ElectionApi {
             },
         );
 
-        self.assert_tx_hash(&tx);
+        self.assert_tx_hash(&tx).await;
 
         (tx, key_pair)
     }
 
-    fn create_administration(
+    async fn create_administration(
         &self,
         name: &str,
         principal: &Option<PublicKey>,
@@ -93,11 +90,11 @@ impl ElectionApi {
                 area: area.to_owned(),
             },
         );
-        self.assert_tx_hash(&tx);
+        self.assert_tx_hash(&tx).await;
         (tx, key_pair)
     }
 
-    fn issue_election(
+    async fn issue_election(
         &self,
         name: &str,
         start_date: &DateTime<Utc>,
@@ -114,11 +111,11 @@ impl ElectionApi {
                 options: options.iter().map(ToString::to_string).collect(),
             },
         );
-        self.assert_tx_hash(&tx);
+        self.assert_tx_hash(&tx).await;
         tx
     }
 
-    fn vote(&self, election_id: i64, option_id: i32, key_pair: &KeyPair) -> Verified<AnyTx> {
+    async fn vote(&self, election_id: i64, option_id: i32, key_pair: &KeyPair) -> Verified<AnyTx> {
         let tx = key_pair.vote(
             BLOCKCHAIN_SERVICE_ID,
             Vote {
@@ -127,16 +124,17 @@ impl ElectionApi {
                 seed: rand::random(),
             },
         );
-        self.assert_tx_hash(&tx);
+        self.assert_tx_hash(&tx).await;
         tx
     }
 
-    fn assert_tx_status(&self, tx_hash: Hash, expected_status: &serde_json::Value) {
+    async fn assert_tx_status(&self, tx_hash: Hash, expected_status: &serde_json::Value) {
         let info: serde_json::Value = self
             .inner
             .public(ApiKind::Explorer)
             .query(&TransactionQuery::new(tx_hash))
             .get("v1/transactions")
+            .await
             .unwrap();
 
         if let serde_json::Value::Object(mut info) = info {
@@ -147,22 +145,29 @@ impl ElectionApi {
         }
     }
 
-    fn assert_tx_hash(&self, tx: &Verified<AnyTx>) {
+    async fn assert_tx_successful(&self, tx_hash: Hash) {
+        self.assert_tx_status(tx_hash, &constant::tx_status_success())
+            .await
+    }
+
+    async fn assert_tx_hash(&self, tx: &Verified<AnyTx>) {
         let tx_info: TransactionResponse = self
             .inner
             .public(ApiKind::Explorer)
-            .query(&json!({ "tx_body": tx }))
+            .query(&serde_json::json!({ "tx_body": tx }))
             .post("v1/transactions")
+            .await
             .unwrap();
         assert_eq!(tx_info.tx_hash, tx.object_hash());
     }
 
-    fn get_participant(&self, pub_key: &PublicKey) -> Option<Participant> {
+    async fn get_participant(&self, pub_key: &PublicKey) -> Option<Participant> {
         let participant_info = self
             .inner
             .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
             .query(&KeyQuery { key: *pub_key })
             .get::<ParticipantInfo>("v1/participants/info")
+            .await
             .unwrap();
 
         // Check parts of the proof returned together with the wallet.
@@ -195,12 +200,13 @@ impl ElectionApi {
         participant.cloned()
     }
 
-    fn get_administration(&self, pub_key: &PublicKey) -> Option<Administration> {
+    async fn get_administration(&self, pub_key: &PublicKey) -> Option<Administration> {
         let administration_info = self
             .inner
             .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
             .query(&KeyQuery { key: *pub_key })
             .get::<AdministrationInfo>("v1/administrations/info")
+            .await
             .unwrap();
 
         // Check parts of the proof returned together with the wallet.
@@ -233,50 +239,53 @@ impl ElectionApi {
         administration.cloned()
     }
 
-    fn get_active_elections(&self, addr: &AdministrationAddress) -> Vec<Election> {
+    async fn get_active_elections(&self, addr: &AdministrationAddress) -> Vec<Election> {
         self.inner
             .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
             .query(&KeyQuery { key: *addr })
             .get("v1/elections/active")
+            .await
             .unwrap()
     }
 
-    fn get_election_result(&self, id: i64) -> HashMap<i32, u32> {
+    async fn get_election_result(&self, id: i64) -> HashMap<i32, u32> {
         self.inner
             .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
             .query(&KeyQuery { key: id })
             .get("v1/elections/result")
+            .await
             .unwrap()
     }
 }
 
 fn create_test_kit() -> (TestKit, ElectionApi, MockTimeProvider) {
     use crypto_election_node::model::transactions::Config;
+    use exonum_rust_runtime::spec::Spec;
 
     let mock_provider = MockTimeProvider::new(SystemTime::now().into());
 
-    let time_service = TimeServiceFactory::with_provider(mock_provider.clone());
-    let time_service_artifact = time_service.artifact_id();
+    let time_service = {
+        let service = TimeServiceFactory::with_provider(mock_provider.clone());
 
-    let election_service = ElectionService;
-    let election_service_artifact = election_service.artifact_id();
+        Spec::new(service).with_instance(TIME_SERVICE_ID, TIME_SERVICE_NAME, ())
+    };
+
+    let election_service = {
+        let config = Config {
+            time_service_name: TIME_SERVICE_NAME.to_owned(),
+        };
+
+        Spec::new(ElectionService).with_instance(
+            BLOCKCHAIN_SERVICE_ID,
+            BLOCKCHAIN_SERVICE_NAME,
+            config,
+        )
+    };
 
     let mut test_kit = TestKitBuilder::validator()
-        .with_default_rust_service(ExplorerFactory)
-        .with_rust_service(time_service)
-        .with_rust_service(election_service)
-        .with_artifact(time_service_artifact.clone())
-        .with_instance(
-            time_service_artifact.into_default_instance(TIME_SERVICE_ID, TIME_SERVICE_NAME),
-        )
-        .with_artifact(election_service_artifact.clone())
-        .with_instance(
-            election_service_artifact
-                .into_default_instance(BLOCKCHAIN_SERVICE_ID, BLOCKCHAIN_SERVICE_NAME)
-                .with_constructor(Config {
-                    time_service_name: TIME_SERVICE_NAME.to_owned(),
-                }),
-        )
+        .with(Spec::new(ExplorerFactory).with_default_instance())
+        .with(time_service)
+        .with(election_service)
         .build();
 
     let api = ElectionApi {
@@ -295,23 +304,25 @@ fn empty_polygon() -> Polygon {
     }
 }
 
-#[test]
-fn create_participant() {
+#[tokio::test]
+async fn create_participant() {
     let (mut test_kit, api, _) = create_test_kit();
 
-    let (tx, _) = api.create_participant(
-        participant1::NAME,
-        participant1::EMAIL,
-        participant1::PHONE_NUMBER,
-        &None,
-        participant1::PASS_CODE,
-    );
+    let (tx, _) = api
+        .create_participant(
+            participant1::NAME,
+            participant1::EMAIL,
+            participant1::PHONE_NUMBER,
+            &None,
+            participant1::PASS_CODE,
+        )
+        .await;
 
     test_kit.create_block();
 
-    api.assert_tx_status(tx.object_hash(), &json!({"type": "success"}));
+    api.assert_tx_successful(tx.object_hash()).await;
 
-    let participant = api.get_participant(&tx.author()).unwrap();
+    let participant = api.get_participant(&tx.author()).await.unwrap();
 
     assert_eq!(participant.addr, author_address(&tx));
     assert_eq!(participant.name, participant1::NAME);
@@ -320,37 +331,43 @@ fn create_participant() {
     assert_eq!(participant.pass_code, participant1::PASS_CODE);
 }
 
-#[test]
-fn create_administration() {
+#[tokio::test]
+async fn create_administration() {
     let (mut test_kit, api, _) = create_test_kit();
 
-    let (tx, _) = api.create_administration(administration1::NAME, &None, &empty_polygon());
+    let (tx, _) = api
+        .create_administration(administration1::NAME, &None, &empty_polygon())
+        .await;
 
     test_kit.create_block();
 
-    api.assert_tx_status(tx.object_hash(), &json!({"type": "success"}));
+    api.assert_tx_successful(tx.object_hash()).await;
 
-    let administration = api.get_administration(&tx.author()).unwrap();
+    let administration = api.get_administration(&tx.author()).await.unwrap();
 
     assert_eq!(administration.name, administration1::NAME);
 }
 
-#[test]
-#[ignore = "not yet implemented"]
-fn select_administration_principals() {
+#[tokio::test]
+#[ignore = "not implemented yet"]
+async fn select_administration_principals() {
     let (mut test_kit, api, _) = create_test_kit();
 
-    let (tx_a1, _) = api.create_administration(administration1::NAME, &None, &empty_polygon());
-    let (tx_a2, _) = api.create_administration(
-        administration2::NAME,
-        &Some(tx_a1.author()),
-        &empty_polygon(),
-    );
+    let (tx_a1, _) = api
+        .create_administration(administration1::NAME, &None, &empty_polygon())
+        .await;
+    let (tx_a2, _) = api
+        .create_administration(
+            administration2::NAME,
+            &Some(tx_a1.author()),
+            &empty_polygon(),
+        )
+        .await;
 
     test_kit.create_block();
 
-    api.assert_tx_status(tx_a1.object_hash(), &json!({"type": "success"}));
-    api.assert_tx_status(tx_a2.object_hash(), &json!({"type": "success"}));
+    api.assert_tx_successful(tx_a1.object_hash()).await;
+    api.assert_tx_successful(tx_a2.object_hash()).await;
 
     // FixMe: adapt this test for new version
 
@@ -372,89 +389,101 @@ fn select_administration_principals() {
     //assert_eq!(a2_principals[0].pub_key, tx_a1.author());
 }
 
-#[test]
-#[ignore = "not yet implemented"]
-fn select_principals_elections() {
+#[tokio::test]
+#[ignore = "not implemented yet"]
+async fn select_principals_elections() {
     //ToDo: Add participants selection
 }
 
-#[test]
-fn issue_election() {
+#[tokio::test]
+async fn issue_election() {
     let (mut test_kit, api, time_provider) = create_test_kit();
 
-    let (tx_administration, key_administration) =
-        api.create_administration(administration1::NAME, &None, &empty_polygon());
+    let (tx_administration, key_administration) = api
+        .create_administration(administration1::NAME, &None, &empty_polygon())
+        .await;
 
     test_kit.create_block();
 
-    let elections_before = api.get_active_elections(&author_address(&tx_administration));
+    let elections_before = api
+        .get_active_elections(&author_address(&tx_administration))
+        .await;
 
     assert!(elections_before.is_empty());
 
     let now = time_provider.time();
 
-    let create_election_tx = api.issue_election(
-        election1::NAME,
-        &now,
-        &(now + Duration::hours(1)),
-        election1::OPTIONS,
-        &key_administration,
-    );
+    let create_election_tx = api
+        .issue_election(
+            election1::NAME,
+            &now,
+            &(now + Duration::hours(1)),
+            election1::OPTIONS,
+            &key_administration,
+        )
+        .await;
 
     test_kit.create_block();
 
-    api.assert_tx_status(
-        create_election_tx.object_hash(),
-        &json!({"type": "success"}),
-    );
+    api.assert_tx_successful(create_election_tx.object_hash())
+        .await;
 
-    let elections_after = api.get_active_elections(&author_address(&tx_administration));
+    let elections_after = api
+        .get_active_elections(&author_address(&tx_administration))
+        .await;
 
     assert_eq!(elections_after.len(), 1);
 }
 
-#[test]
-fn election_results_counting() {
+#[tokio::test]
+async fn election_results_counting() {
     let (mut test_kit, api, time_provider) = create_test_kit();
-    let (_, key_alice) = api.create_participant(
-        participant1::NAME,
-        participant1::EMAIL,
-        participant1::PHONE_NUMBER,
-        &None,
-        participant1::PASS_CODE,
-    );
+    let (_, key_alice) = api
+        .create_participant(
+            participant1::NAME,
+            participant1::EMAIL,
+            participant1::PHONE_NUMBER,
+            &None,
+            participant1::PASS_CODE,
+        )
+        .await;
 
-    let (_, key_bob) = api.create_participant(
-        participant2::NAME,
-        participant2::EMAIL,
-        participant2::PHONE_NUMBER,
-        &None,
-        participant2::PASS_CODE,
-    );
+    let (_, key_bob) = api
+        .create_participant(
+            participant2::NAME,
+            participant2::EMAIL,
+            participant2::PHONE_NUMBER,
+            &None,
+            participant2::PASS_CODE,
+        )
+        .await;
 
-    let (tx_administration, key_administration) =
-        api.create_administration(administration1::NAME, &None, &empty_polygon());
+    let (tx_administration, key_administration) = api
+        .create_administration(administration1::NAME, &None, &empty_polygon())
+        .await;
 
     test_kit.create_block();
 
     let now = time_provider.time();
 
-    let create_election_tx = api.issue_election(
-        election1::NAME,
-        &now,
-        &(now + Duration::hours(1)),
-        election1::OPTIONS,
-        &key_administration,
-    );
+    let create_election_tx = api
+        .issue_election(
+            election1::NAME,
+            &now,
+            &(now + Duration::hours(1)),
+            election1::OPTIONS,
+            &key_administration,
+        )
+        .await;
 
     test_kit.create_block();
 
-    api.assert_tx_status(
-        create_election_tx.object_hash(),
-        &json!({"type": "success"}),
-    );
+    api.assert_tx_successful(create_election_tx.object_hash())
+        .await;
 
-    let elections = api.get_active_elections(&author_address(&tx_administration));
+    let elections = api
+        .get_active_elections(&author_address(&tx_administration))
+        .await;
 
     assert_eq!(elections.len(), 1);
 
@@ -464,15 +493,15 @@ fn election_results_counting() {
 
     assert_eq!(options.len(), 3);
 
-    let tx_vote_alice = api.vote(election.addr, options[0].id, &key_alice);
-    let tx_vote_bob = api.vote(election.addr, options[2].id, &key_bob);
+    let tx_vote_alice = api.vote(election.addr, options[0].id, &key_alice).await;
+    let tx_vote_bob = api.vote(election.addr, options[2].id, &key_bob).await;
 
     test_kit.create_block();
 
-    api.assert_tx_status(tx_vote_alice.object_hash(), &json!({"type": "success"}));
-    api.assert_tx_status(tx_vote_bob.object_hash(), &json!({"type": "success"}));
+    api.assert_tx_successful(tx_vote_alice.object_hash()).await;
+    api.assert_tx_successful(tx_vote_bob.object_hash()).await;
 
-    let results = api.get_election_result(election.addr);
+    let results = api.get_election_result(election.addr).await;
 
     assert_eq!(results.len(), 3);
 

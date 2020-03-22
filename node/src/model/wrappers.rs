@@ -1,13 +1,12 @@
 use std::convert::{AsMut, AsRef};
 
-use failure::Error;
-
 use serde::{Deserialize, Serialize};
 
+use anyhow as failure;
 use exonum::{crypto::Hash, runtime::CallerAddress as Address};
 use exonum_derive::{BinaryValue, ObjectHash};
+use exonum_merkledb::proof_map::{Hashed, Raw};
 use exonum_proto::ProtobufConvert;
-use exonum_merkledb::proof_map::{Raw, Hashed};
 
 use crate::proto;
 
@@ -64,7 +63,7 @@ impl ProtobufConvert for OptionalContainer<Hash> {
         proto
     }
 
-    fn from_pb(pb: Self::ProtoStruct) -> Result<Self, Error> {
+    fn from_pb(pb: Self::ProtoStruct) -> anyhow::Result<Self> {
         if pb.has_value() {
             Ok(Self(Some(Hash::from_pb(pb.get_value().to_owned())?)))
         } else {
@@ -90,7 +89,7 @@ impl ProtobufConvert for OptionalContainer<Address> {
         proto
     }
 
-    fn from_pb(pb: Self::ProtoStruct) -> Result<Self, Error> {
+    fn from_pb(pb: Self::ProtoStruct) -> anyhow::Result<Self> {
         if pb.has_value() {
             Ok(Self(Some(Address::from_pb(pb.get_value().to_owned())?)))
         } else {

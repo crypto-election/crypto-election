@@ -28,8 +28,8 @@ impl PublicApi {
     ///
     /// ## API address
     /// `v1/participants/info`
-    pub fn participant_info(
-        state: &ServiceApiState,
+    pub async fn participant_info(
+        state: ServiceApiState,
         query: KeyQuery<PublicKey>,
     ) -> api::Result<ParticipantInfo> {
         let index_pair = {
@@ -50,8 +50,8 @@ impl PublicApi {
     ///
     /// ## API address
     /// `v1/administrations/info`
-    pub fn administration_info(
-        state: &ServiceApiState<'_>,
+    pub async fn administration_info(
+        state: ServiceApiState,
         query: KeyQuery<PublicKey>,
     ) -> api::Result<AdministrationInfo> {
         let index_pair = {
@@ -68,8 +68,8 @@ impl PublicApi {
     ///
     /// ## API address
     /// `v1/elections/info`
-    pub fn election_info(
-        state: &ServiceApiState,
+    pub async fn election_info(
+        state: ServiceApiState,
         query: KeyQuery<i64>,
     ) -> api::Result<ElectionInfo> {
         let index_pair = {
@@ -82,7 +82,7 @@ impl PublicApi {
     }
 
     #[doc(hidden)]
-    pub fn all_elections(state: &ServiceApiState, _: ()) -> api::Result<Vec<Election>> {
+    pub async fn all_elections(state: ServiceApiState, _: ()) -> api::Result<Vec<Election>> {
         Ok(SchemaImpl::new(state.service_data())
             .public
             .elections
@@ -90,8 +90,8 @@ impl PublicApi {
             .collect())
     }
 
-    pub fn active_elections(
-        state: &ServiceApiState,
+    pub async fn active_elections(
+        state: ServiceApiState,
         query: KeyQuery<AdministrationAddress>,
     ) -> api::Result<Vec<Election>> {
         let schema = SchemaImpl::new(state.service_data());
@@ -124,8 +124,8 @@ impl PublicApi {
             .ok_or_else(api::Error::not_found)
     }
 
-    pub fn election_results(
-        state: &ServiceApiState,
+    pub async fn election_results(
+        state: ServiceApiState,
         query: KeyQuery<i64>,
     ) -> api::Result<HashMap<i32, u32>> {
         SchemaImpl::new(state.service_data())
