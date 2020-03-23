@@ -2,6 +2,7 @@ FROM python:3.8.2-buster
 
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
+            libprotobuf-dev \
             libsodium-dev \
             protobuf-compiler \
             software-properties-common; \
