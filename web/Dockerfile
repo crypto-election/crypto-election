@@ -1,19 +1,17 @@
-FROM ubuntu:18.04
+FROM node:13.10.1-buster
 
-RUN apt-get update \
-    && apt-get install -y software-properties-common apt-utils \
-    && add-apt-repository ppa:maarten-fonville/protobuf \
-    && apt-get update \
-    && apt-get install -y curl git gcc cpp \
-    libssl-dev pkg-config libsodium-dev \
-    libprotobuf-dev protobuf-compiler \
-    && curl -sL https://deb.nodesource.com/setup_10.x | bash \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends \
+            libprotobuf-dev \
+            libsodium-dev \
+            pkg-config \
+            protobuf-compiler \
+            software-properties-common;
 
 WORKDIR /usr/src
 ADD proto/ proto/
 ADD web/package.json web/
+
 WORKDIR /usr/src/web
 RUN npm install
 

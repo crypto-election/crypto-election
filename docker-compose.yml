@@ -1,10 +1,22 @@
 version: "3.7"
 services: 
-    node1:
-    node2:
-    node3:
-    node4:
+    node:
+        image: integrer/crypto-election-node:latest
+        build:
+            context: ./
+            dockerfile: node/Dockerfile
+#        ports:
+#          - "8000:8000"
+    exonum_launcher:
+        build:
+            context: ./
+            dockerfile: launcher/Dockerfile
     web:
-        build: 
+        image: integrer/crypto-election-web:latest
+        build:
             context: ./
             dockerfile: web/Dockerfile
+        links:
+          - node
+        ports:
+          - "8008:8008"

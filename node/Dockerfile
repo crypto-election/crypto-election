@@ -1,28 +1,27 @@
-FROM ubuntu:18.04
+FROM rust:1.42.0-buster
 
 ENV ROCKSDB_LIB_DIR=/usr/lib
 ENV SNAPPY_LIB_DIR=/usr/lib/x86_64-linux-gnu
 
-RUN apt-get update \
-    && apt-get install -y software-properties-common apt-utils \
-    && add-apt-repository ppa:maarten-fonville/protobuf \
-    && apt-get update \
-    && apt-get install -y curl git \
-    build-essential libsodium-dev libsnappy-dev \
-    librocksdb-dev pkg-config clang-7 lldb-7 lld-7 \
-    libprotobuf-dev protobuf-compiler \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV RUSTUP_HOME=/usr
-ENV CARGO_HOME=/usr
-
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain=stable
-
-WORKDIR /usr/src
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends \
+            build-essential \
+            clang-7 \
+            libprotobuf-dev \
+            librocksdb-dev \
+            libsnappy-dev \
+            libsodium-dev \
+            lld-7 \
+            lldb-7 \
+            pkg-config \
+            protobuf-compiler \
+            software-properties-common; \
+    rm -rf /var/lib/apt/lists/*;
 
 ###############################################################################
 # Build all dependencies. Optimizing build time in next time
 ###############################################################################
+WORKDIR /usr/src
 COPY Cargo.toml ./
 COPY node/Cargo.toml node/
 RUN mkdir node/src/ \

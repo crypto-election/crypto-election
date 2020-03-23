@@ -1,11 +1,11 @@
-FROM ubuntu:18.04
+FROM python:3.8.2-buster
 
-RUN apt-get update \
-    && apt-get install -y software-properties-common apt-utils git \
-    && add-apt-repository ppa:maarten-fonville/protobuf \
-    && apt-get install -y libsodium-dev protobuf-compiler \
-        python3-pip python3-setuptools \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update; \
+    apt-get install -y --no-install-recommends \
+            libsodium-dev \
+            protobuf-compiler \
+            software-properties-common; \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src
 
