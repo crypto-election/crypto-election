@@ -4,7 +4,7 @@ import * as proto from '../../proto/stubs.js'
 
 const TRANSACTION_URL = '/api/explorer/v1/transactions'
 const PER_PAGE = 10
-const SERVICE_ID = 128
+const SERVICE_ID = 4
 
 const TX_CREATE_PARTICIPANT_ID = 0;
 const TX_CREATE_ADMINISTRATION_ID = 1;
