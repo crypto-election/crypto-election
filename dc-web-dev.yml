@@ -1,15 +1,17 @@
-# Release docker compose configuration
+# Configuration for frontend development
 
 version: "3.7"
 services: 
     node:
         image: integrer/crypto-election-node:latest
-#        ports:
-#          - "8000:8000"
+        ports:
+          - "8000:8000"
     exonum_launcher:
         image: integrer/exonum-launcher:latest
     web:
-        image: integrer/crypto-election-web:latest
+        build:
+            context: ./
+            dockerfile: web/Dockerfile
         links:
           - node
         ports:
