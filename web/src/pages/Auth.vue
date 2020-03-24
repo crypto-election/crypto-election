@@ -79,12 +79,12 @@
             <tab title="Log in">
               <form @submit.prevent="login">
                 <div class="form-group">
-                  <label class="control-label">Secret key:</label>
+                  <label class="control-label">Секретный ключ:</label>
                   <input
                     v-model="secretKey"
                     type="text"
                     class="form-control"
-                    placeholder="Enter secret key"
+                    placeholder="Введите секретный ключ"
                     required
                   >
                 </div>
@@ -106,9 +106,9 @@
       <div
         class="alert alert-warning"
         role="alert"
-      >Save the secret key in a safe place. You will need it to log in to the demo next time.</div>
+      >Сохраните секретный ключ в надежном месте. Он вам понадобится что бы войти на аккаунт в следующий раз.</div>
       <div class="form-group">
-        <label>Secret key:</label>
+        <label>Секретный ключ:</label>
         <div>
           <code>{{ keyPair.secretKey }}</code>
         </div>
