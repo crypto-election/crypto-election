@@ -149,18 +149,20 @@ module.exports = {
       },
 
       getWallet(publicKey) {
+        // Что мы молучаем?
         return axios.get('/api/services/supervisor/consensus-config').then(response => {
-          // actual list of public keys of validators
+          // Актуальный список открытых ключей валидаторов
           const validators = response.data.config.validator_keys.map(validator => validator.consensus_key)
-
+          // Что мы молучаем? поменять кошельки?
           return axios.get(`/api/services/cryptocurrency/v1/wallets/info?pub_key=${publicKey}`)
             .then(response => response.data)
             .then(data => {
+              // Функция выдаёт ошибку если блок не действителен
               return Exonum.verifyBlock(data.block_proof, validators).then(() => {
-                // verify table timestamps in the root tree
+                // Проверить временные метки таблицы в корвеом дереве
                 const tableRootHash = Exonum.verifyTable(data.wallet_proof.to_table, data.block_proof.block.state_hash, "election.participants")
 
-                // find wallet in the tree of all wallets
+                // Найти """кошелек""" в дереве кошельков (MapProof - Проверка докозательства ( json,тип данных, тип ценности))
                 const walletProof = new Exonum.MapProof(data.wallet_proof.to_wallet, Exonum.PublicKey, Wallet)
                 if (walletProof.merkleRoot !== tableRootHash) {
                   throw new Error('Wallet proof is corrupted')
@@ -170,7 +172,7 @@ module.exports = {
                   throw new Error('Wallet not found')
                 }
 
-                // get transactions
+                // Получить транзакцию. Нет функции в экзонум мерклепруф. хз чтто думать
                 const transactionsMetaData = Exonum.merkleProof(
                   Exonum.uint8ArrayToHexadecimal(new Uint8Array(wallet.history_hash.data)),
                   wallet.history_len,
