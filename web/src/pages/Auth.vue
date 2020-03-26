@@ -3,10 +3,10 @@
     <div class="container">
       <div class="row justify-content-sm-center">
         <div class="col-md-6 col-md-offset-3">
-          <h1 class="mt-5 mb-4">Авторизация</h1>
+          <h1 class="mt-5 mb-4">Взод в акаунт</h1>
           <tabs>
             <!--Введение параметров в формы регистрации-->
-            <tab :is-active="true" title="Register">
+            <tab :is-active="true" title="Регистрация">
               <form @submit.prevent="register">
                 <div class="form-group">
                   <label for="name" class="control-label">Логин:</label>
@@ -76,7 +76,7 @@
                 <button type="submit" class="btn btn-lg btn-block btn-primary">Регистрация</button>
               </form>
             </tab>
-            <tab title="Log in">
+            <tab title="Авторизация">
               <form @submit.prevent="login">
                 <div class="form-group">
                   <label class="control-label">Секретный ключ:</label>
@@ -88,7 +88,7 @@
                     required
                   >
                 </div>
-                <button type="submit" class="btn btn-lg btn-block btn-primary">Log in</button>
+                <button type="submit" class="btn btn-lg btn-block btn-primary">Вход</button>
               </form>
             </tab>
           </tabs>
@@ -98,8 +98,8 @@
 
     <modal
       :visible="isModalVisible"
-      title="Wallet has been created"
-      action-btn="Log in"
+      title="Акаунт был создан"
+      action-btn="Войти"
       @close="closeModal"
       @submit="proceed"
     >
