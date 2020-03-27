@@ -24,7 +24,7 @@ artifacts:
   time:
     runtime: rust
     name: "exonum-time"
-    version: "1.0.0-rc.2"
+    version: "1.0.0-rc.3"
     deploy: false
   cryptoelection:
     runtime: rust
