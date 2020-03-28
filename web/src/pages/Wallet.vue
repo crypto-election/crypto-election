@@ -20,14 +20,6 @@
                   <div class="col-sm-9"><code>{{ keyPair.publicKey }}</code></div>
                 </div>
               </li>
-              <li class="list-group-item">
-                <div class="row">
-                  <div class="col-sm-3"><strong>Balance:</strong></div>
-                  <div class="col-sm-9">
-                    <span v-numeral="balance"/>
-                  </div>
-                </div>
-              </li>
             </ul>
           </div>
 
@@ -153,10 +145,10 @@
         this.isSpinnerVisible = true
 
         try {
-          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
-          this.name = data.wallet.name
-          this.balance = data.wallet.balance
-          this.transactions = data.transactions
+          const { participant, transactions } =
+                  await this.$blockchain.getParticipant(this.keyPair.publicKey)
+          this.name = participant.name
+          this.transactions = transactions
           this.isSpinnerVisible = false
         } catch (error) {
           this.isSpinnerVisible = false

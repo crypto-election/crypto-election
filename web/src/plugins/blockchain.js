@@ -193,8 +193,8 @@ module.exports = {
 
                 return {
                   block: block_proof.block,
-                  wallet: participant,
-                  transactions: transactions
+                  participant,
+                  transactions
                 }
             })
         })

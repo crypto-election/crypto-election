@@ -39,7 +39,8 @@
           <!-- As a link -->
           <nav class="nav flex-column">
             <button
-              :v-for="(navOption, index) in options"
+              v-for="(navOption, index) in options"
+              :key="navOption.question"
               class="btn btn-primary"
               type="submit"
               @click="choiseFunc(index)"
@@ -50,12 +51,12 @@
         <div class="col-md-6">
           <div class="card mt-5">
             <div class="card-header">Голосование</div>
-            <div>
+            <div class="col-12">
               <vue-poll
                 v-for="(option) of options"
                 :key="option.id"
                 v-bind="option"
-                @addvote="addVote()"
+                @addvote="addVote"
               />
             </div>
           </div>
@@ -79,7 +80,8 @@
     components: {
       Modal,
       Navbar,
-      Spinner
+      Spinner,
+      VuePoll
     },
     data() {
       return {
@@ -113,9 +115,6 @@
         }
       }
     },
-    components: {
-      VuePoll
-    },
     computed: Object.assign({
       reverseTransactions() {
         return this.transactions.slice().reverse()
@@ -140,10 +139,12 @@
         this.isSpinnerVisible = true
 
         try {
-          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
-          this.name = data.wallet.name
-          this.balance = data.wallet.balance
-          this.transactions = data.transactions
+          const { participant, transactions } =
+                  await this.$blockchain.getParticipant(this.keyPair.publicKey)
+          this.name = participant.name
+          this.email = participant.email
+          this.phone_number = participant.phone_number
+          this.transactions = transactions
           this.isSpinnerVisible = false
         } catch (error) {
           this.isSpinnerVisible = false
