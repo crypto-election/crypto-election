@@ -6,17 +6,29 @@
       <div class="row">
         <div class="col-md-6">
           <div class="card mt-5">
-            <div class="card-header">User summary</div>
+            <div class="card-header">Информация о пользователе</div>
             <ul class="list-group list-group-flush">
               <li class="list-group-item">
                 <div class="row">
-                  <div class="col-sm-3"><strong>Name:</strong></div>
+                  <div class="col-sm-3"><strong>Логин:</strong></div>
                   <div class="col-sm-9">{{ name }}</div>
                 </div>
               </li>
               <li class="list-group-item">
                 <div class="row">
-                  <div class="col-sm-3"><strong>Public key:</strong></div>
+                  <div class="col-sm-3"><strong>Email:</strong></div>
+                  <div class="col-sm-9">{{ email }}</div>
+                </div>
+              </li>
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-3"><strong>Номер телефона:</strong></div>
+                  <div class="col-sm-9">{{ phone_number }}</div>
+                </div>
+              </li>
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-3"><strong>Публичный ключ:</strong></div>
                   <div class="col-sm-9"><code>{{ keyPair.publicKey }}</code></div>
                 </div>
               </li>
@@ -72,8 +84,10 @@
     data() {
       return {
         name: '',
-        receiver: '',
-        amountToTransfer: '',
+        email: '',
+        phone_number: 0,
+        // receiver: '',
+        // amountToTransfer: '',
         isSpinnerVisible: false,
         transactions: [],
         choice: "",

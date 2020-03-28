@@ -3,10 +3,10 @@
     <div class="container">
       <div class="row justify-content-sm-center">
         <div class="col-md-6 col-md-offset-3">
-          <h1 class="mt-5 mb-4">Авторизация</h1>
+          <h1 class="mt-5 mb-4">Вход в акаунт</h1>
           <tabs>
             <!-- Ввод данных в форму регистрации -->
-            <tab :is-active="true" title="Register">
+            <tab :is-active="true" title="Регистрация">
               <form @submit.prevent="register">
                 <div class="form-group">
                   <label for="name" class="control-label">Логин:</label>
@@ -178,18 +178,19 @@ module.exports = {
       this.keyPair = this.$blockchain.generateKeyPair();
 
       try {
-        await this.$blockchain.createParticipant(
-                this.keyPair,
-                {
-                  name: this.name,
-                  email: this.email,
-                  phone_number: this.phone_number,
-                  residence: undefined,
-                  pass_code: this.pass_code
-                });
+        await this.$blockchain.createParticipant(this.keyPair, {
+          name: this.name,
+          email: this.email,
+          phone_number: this.phone_number,
+          //residence: this.residence,
+          pass_code: this.pass_code
+        });
 
-        this.name = this.email = this.phone_number = this.residence =
-                this.pass_code = "";
+        this.name = "";
+        this.email = "";
+        this.phone_number = "";
+        this.residence = "";
+        this.pass_code = "";
         this.isSpinnerVisible = false;
         this.isModalVisible = true;
       } catch (error) {
