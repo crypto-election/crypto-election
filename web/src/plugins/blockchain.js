@@ -210,7 +210,12 @@ module.exports = {
       },
 
       getTransaction(hash) {
-        return axios.get(`/api/explorer/v1/transactions?hash=${hash}`).then(response => response.data)
+        return axios.get(`/api/explorer/v1/transactions?hash=${hash}`)
+            .then(response => response.data)
+            .then(data => {
+              data.content = deserializeTx(data.message)
+              return data
+            })
       }
     }
   }
