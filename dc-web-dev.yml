@@ -3,11 +3,11 @@
 version: "3.7"
 services: 
     node:
-        image: integrer/crypto-election-node:latest
+        image: integrer/crypto-election-node:0.2.0-exonum-1.0.0-rc.3
         ports:
           - "8000:8000"
     exonum_launcher:
-        image: integrer/exonum-launcher:latest
+        image: integrer/exonum-launcher:0.2.0-exonum-1.0.0-rc.3
     web:
         build:
             context: ./

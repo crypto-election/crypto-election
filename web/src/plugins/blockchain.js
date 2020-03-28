@@ -5,6 +5,8 @@ import * as proto from '../../proto/stubs.js'
 const TRANSACTION_URL = '/api/explorer/v1/transactions'
 const PER_PAGE = 10
 const SERVICE_ID = 4
+const SERVICE_NAME = 'crypto_election'
+const SERVICE_PUBLIC_API_PATH = `/api/services/${SERVICE_NAME}/v1`
 
 const TX_CREATE_PARTICIPANT_ID = 0;
 const TX_CREATE_ADMINISTRATION_ID = 1;
@@ -148,84 +150,52 @@ module.exports = {
         return transaction.send(TRANSACTION_URL, data, keyPair.secretKey)
       },
 
-      getWallet(publicKey) {
+      getParticipant(publicKey) {
         return axios.get('/api/services/supervisor/consensus-config').then(response => {
           // actual list of public keys of validators
-          const validators = response.data.config.validator_keys.map(validator => validator.consensus_key)
+          const validators = response.data.validator_keys.map(validator => validator.consensus_key)
 
-          return axios.get(`/api/services/cryptocurrency/v1/wallets/info?pub_key=${publicKey}`)
-            .then(response => response.data)
-            .then(data => {
-              return Exonum.verifyBlock(data.block_proof, validators).then(() => {
+          return axios.get(`${SERVICE_PUBLIC_API_PATH}/participants/info?key=${publicKey}`)
+              .then(response => response.data)
+              .then(({ block_proof, object_proof, history }) => {
+                Exonum.verifyBlock(block_proof, validators)
                 // verify table timestamps in the root tree
-                const tableRootHash = Exonum.verifyTable(data.wallet_proof.to_table, data.block_proof.block.state_hash, "election.participants")
+                const tableRootHash = Exonum.verifyTable(
+                    object_proof.to_table,
+                    block_proof.block.state_hash,
+                    `${SERVICE_NAME}.participants`)
 
                 // find wallet in the tree of all wallets
-                const walletProof = new Exonum.MapProof(data.wallet_proof.to_wallet, Exonum.PublicKey, Wallet)
-                if (walletProof.merkleRoot !== tableRootHash) {
-                  throw new Error('Wallet proof is corrupted')
-                }
-                const wallet = walletProof.entries.get(publicKey)
-                if (typeof wallet === 'undefined') {
-                  throw new Error('Wallet not found')
-                }
+                const participantProof = new Exonum.MapProof(
+                    object_proof.to_object,
+                    Exonum.MapProof.rawKey(Exonum.PublicKey),
+                    Participant)
+                if (participantProof.merkleRoot !== tableRootHash)
+                  throw new Error('Participant proof is corrupted')
 
-                // get transactions
-                const transactionsMetaData = Exonum.merkleProof(
-                  Exonum.uint8ArrayToHexadecimal(new Uint8Array(wallet.history_hash.data)),
-                  wallet.history_len,
-                  data.wallet_history.proof,
-                  [0, wallet.history_len],
-                  Exonum.Hash
-                )
+                const participant = participantProof.entries.get(Exonum.publicKeyToAddress(publicKey))
+                if (typeof participant == 'undefined') throw new Error('Participant not found')
 
-                if (data.wallet_history.transactions.length !== transactionsMetaData.length) {
-                  // number of transactions in wallet history is not equal
-                  // to number of transactions in array with transactions meta data
-                  throw new Error('Transactions can not be verified')
-                }
+                const verifiedTransactions = new Exonum.ListProof(history.proof, Exonum.Hash)
+                const hexHistoryHash = Exonum.uint8ArrayToHexadecimal(new Uint8Array(participant.history_hash.data))
+                if (verifiedTransactions.merkleRoot !== hexHistoryHash) throw new Error('Transactions proof is corrupted')
 
-                // validate each transaction
-                const transactions = []
-                let index = 0
+                const validIndexes = verifiedTransactions
+                    .entries
+                    .every(({ index }, i) => i === index)
+                if (!validIndexes) throw new Error('Invalid transaction indexes in the proof')
 
-                for (let transaction of data.wallet_history.transactions) {
-                  const hash = transactionsMetaData[index++]
-                  const buffer = Exonum.hexadecimalToUint8Array(transaction.message)
-                  const bufferWithoutSignature = buffer.subarray(0, buffer.length - 64)
-                  const author = Exonum.uint8ArrayToHexadecimal(buffer.subarray(0, 32))
-                  const signature = Exonum.uint8ArrayToHexadecimal(buffer.subarray(buffer.length - 64, buffer.length));
+                // deserialize transactions
+                const transactions = history.transactions.map(deserializeTx)
 
-                  const Transaction = getTransaction(transaction.debug, author)
-
-                  if (Exonum.hash(buffer) !== hash) {
-                    throw new Error('Invalid transaction hash')
-                  }
-
-                  // serialize transaction and compare with message
-                  if (!Transaction.serialize(transaction.debug).every(function (el, i) {
-                    return el === bufferWithoutSignature[i]
-                  })) {
-                    throw new Error('Invalid transaction message')
-                  }
-
-                  if (!Transaction.verifySignature(signature, author, transaction.debug)) {
-                    throw new Error('Invalid transaction signature')
-                  }
-
-                  const transactionData = Object.assign({ hash: hash }, transaction.debug)
-                  if (transactionData.to) {
-                    transactionData.to = Exonum.uint8ArrayToHexadecimal(new Uint8Array(transactionData.to.data))
-                  }
-                  transactions.push(transactionData)
-                }
+                const correctHashes = transactions.every(({ hash }, i) => verifiedTransactions.entries[i].value === hash)
+                if (!correctHashes) throw new Error('Transaction hash mismatch')
 
                 return {
-                  block: data.block_proof.block,
-                  wallet: wallet,
+                  block: block_proof.block,
+                  wallet: participant,
                   transactions: transactions
                 }
-              })
             })
         })
       },

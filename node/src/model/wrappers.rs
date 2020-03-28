@@ -1,4 +1,4 @@
-use std::convert::{AsMut, AsRef};
+use std::{convert::{AsMut, AsRef}};
 
 use serde::{Deserialize, Serialize};
 
@@ -57,18 +57,18 @@ impl ProtobufConvert for OptionalContainer<Hash> {
 
     fn to_pb(&self) -> Self::ProtoStruct {
         let mut proto = Self::ProtoStruct::new();
-        if let Some(v) = self.as_ref() {
-            proto.set_value(v.to_pb())
-        }
+        proto.set_value(self.as_ref().map_or(Hash::zero().to_pb(), |v| v.to_pb()));
         proto
     }
 
     fn from_pb(pb: Self::ProtoStruct) -> anyhow::Result<Self> {
         if pb.has_value() {
-            Ok(Self(Some(Hash::from_pb(pb.get_value().to_owned())?)))
-        } else {
-            Ok(Self(None))
+            let v = Hash::from_pb(pb.get_value().to_owned())?;
+            if v != Hash::zero() {
+                return Ok(Self(Some(v)))
+            }
         }
+        Ok(Self(None))
     }
 }
 
@@ -83,18 +83,18 @@ impl ProtobufConvert for OptionalContainer<Address> {
 
     fn to_pb(&self) -> Self::ProtoStruct {
         let mut proto = Self::ProtoStruct::new();
-        if let Some(v) = self.as_ref() {
-            proto.set_value(v.to_pb())
-        }
+        proto.set_value(self.as_ref().map_or(Hash::zero().to_pb(), |v| v.to_pb()));
         proto
     }
 
     fn from_pb(pb: Self::ProtoStruct) -> anyhow::Result<Self> {
         if pb.has_value() {
-            Ok(Self(Some(Address::from_pb(pb.get_value().to_owned())?)))
-        } else {
-            Ok(Self(None))
+            let v = Address::from_pb(pb.get_value().to_owned())?;
+            if v.as_ref() != Hash::zero().as_ref() {
+                return Ok(Self(Some(v)))
+            }
         }
+        Ok(Self(None))
     }
 }
 

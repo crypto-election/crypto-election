@@ -153,7 +153,7 @@
         this.isSpinnerVisible = true
 
         try {
-          const data = await this.$blockchain.getWallet(this.keyPair.publicKey)
+          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
           this.name = data.wallet.name
           this.balance = data.wallet.balance
           this.transactions = data.transactions
@@ -171,7 +171,7 @@
 
         try {
           await this.$blockchain.addFunds(this.keyPair, this.amountToAdd, seed)
-          const data = await this.$blockchain.getWallet(this.keyPair.publicKey)
+          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
           this.balance = data.wallet.balance
           this.transactions = data.transactions
           this.isSpinnerVisible = false
@@ -197,7 +197,7 @@
 
         try {
           await this.$blockchain.transfer(this.keyPair, this.receiver, this.amountToTransfer, seed)
-          const data = await this.$blockchain.getWallet(this.keyPair.publicKey)
+          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
           this.balance = data.wallet.balance
           this.transactions = data.transactions
           this.isSpinnerVisible = false

@@ -35,7 +35,7 @@ artifacts:
 instances:
   time:
     artifact: time
-  cryptoelection_blockchain_service:
+  crypto_election:
     artifact: cryptoelection
     config:
       time_service_name: "time"
