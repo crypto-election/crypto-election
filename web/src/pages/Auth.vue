@@ -49,7 +49,7 @@
                 </div>
                 <!--Residence-->
                 <div class="form-group">
-                  <label for="residence" class="control-label">Прописка:</label>
+                  <label for="residence" class="control-label">Район:</label>
                   <!--ToDo: Добавить treeselect (https://vue-treeselect.js.org/)-->
                   <input
                     id="residence"

@@ -6,17 +6,35 @@
       <div class="row">
         <div class="col-md-6">
           <div class="card mt-5">
-            <div class="card-header">User summary</div>
+            <div class="card-header">Информация о пользователе</div>
             <ul class="list-group list-group-flush">
               <li class="list-group-item">
                 <div class="row">
-                  <div class="col-sm-3"><strong>Name:</strong></div>
+                  <div class="col-sm-3"><strong>Логин:</strong></div>
                   <div class="col-sm-9">{{ name }}</div>
                 </div>
               </li>
               <li class="list-group-item">
                 <div class="row">
-                  <div class="col-sm-3"><strong>Public key:</strong></div>
+                  <div class="col-sm-3"><strong>Email:</strong></div>
+                  <div class="col-sm-9">{{ email }}</div>
+                </div>
+              </li>
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-3"><strong>Телефон:</strong></div>
+                  <div class="col-sm-9">{{ phone_number }}</div>
+                </div>
+              </li>
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-3"><strong>Район:</strong></div>
+                  <div class="col-sm-9">{{ residence }}</div>
+                </div>
+              </li>
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-3"><strong>Публичный ключ:</strong></div>
                   <div class="col-sm-9"><code>{{ keyPair.publicKey }}</code></div>
                 </div>
               </li>
@@ -114,6 +132,9 @@
     data() {
       return {
         name: '',
+        email: '',
+        phone_number: '',
+        residence: '',
         balance: 0,
         amountToAdd: 10,
         receiver: '',
@@ -138,7 +159,7 @@
       async loadUser() {
         if (this.keyPair === null) {
           this.$store.commit('logout')
-          this.$router.push({ name: 'home' })
+          this.$router.push({ name: 'home', email: 'home', phone_number: 'home', residence: 'home' })
           return
         }
 
@@ -148,6 +169,9 @@
           const { participant, transactions } =
                   await this.$blockchain.getParticipant(this.keyPair.publicKey)
           this.name = participant.name
+          this.email = participant.email
+          this.phone_number = participant.phone_number
+          this.residence = participant.residence
           this.transactions = transactions
           this.isSpinnerVisible = false
         } catch (error) {
