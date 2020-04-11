@@ -66,6 +66,7 @@
 </template>
 
 <script>
+  import { mapState } from 'vuex'
   import Navbar from '../components/Navbar.vue'
   import Spinner from '../components/Spinner.vue'
 
@@ -80,10 +81,13 @@
         name: "",
         start_date: "",
         finish_date: "",
-        options: [],
-        keyPair: {}
+        options: "",
+        // keyPair: {}
       }
     },
+    computed: Object.assign({},
+      mapState({ keyPair: state => state.keyPair })
+    ),
     methods: {
       async newpoll() {
       if (!this.name) {
