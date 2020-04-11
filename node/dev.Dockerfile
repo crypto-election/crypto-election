@@ -7,6 +7,7 @@ RUN apt-get update; \
     apt-get install -y --no-install-recommends \
             build-essential \
             clang-7 \
+            gdb \
             libprotobuf-dev \
             librocksdb-dev \
             libsnappy-dev \
@@ -26,9 +27,9 @@ COPY Cargo.toml ./
 COPY node/Cargo.toml node/
 RUN mkdir node/src/ \
     && echo "fn main() { panic!(\"if you see this, the build broke\") }" > node/src/main.rs \
-    && cargo build --release \
+    && cargo build \
     # Clean target from dummy project files
-    && rm -rf target/release/deps/crypto-election-node*
+    && rm -rf target/debug/deps/crypto-election-node*
 
 ###############################################################################
 # Build project
@@ -36,8 +37,7 @@ RUN mkdir node/src/ \
 COPY node/build.rs node/build.rs
 COPY node/src node/src
 COPY proto proto
-RUN cd node && cargo build --release && cargo install --path . \
-    && rm -rf target ../target
+RUN cd node && cargo build && cargo install --path .
 
 COPY node/launch*.sh ./
 

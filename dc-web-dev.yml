@@ -1,18 +1,14 @@
 # Configuration for frontend development
 
 version: "3.7"
-services: 
+services:
     node:
         image: integrer/crypto-election-node:0.2.0-exonum-1.0.0-rc.3
-        ports:
-          - "8000:8000"
+        links: [ exonum_launcher ]
+        ports: [ "8000:8000" ]
     exonum_launcher:
         image: integrer/exonum-launcher:0.2.0-exonum-1.0.0-rc.3
     web:
-        build:
-            context: ./
-            dockerfile: web/Dockerfile
-        links:
-          - node
-        ports:
-          - "8008:8008"
+        build: { context: ., dockerfile: web/Dockerfile }
+        links: [ node ]
+        ports: [ "8008:8008" ]
