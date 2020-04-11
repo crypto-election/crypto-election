@@ -42,11 +42,11 @@
           </div>
 
           <div class="card mt-5">
-            <div class="card-header">Transactions</div>
+            <div class="card-header">Транзакции</div>
             <ul class="list-group list-group-flush">
               <li class="list-group-item font-weight-bold">
                 <div class="row">
-                  <div class="col-sm-12">Description</div>
+                  <div class="col-sm-12">Описание</div>
                 </div>
               </li>
               <!-- eslint-disable-next-line vue/require-v-for-key -->
@@ -54,7 +54,7 @@
                 <div class="row">
                   <div class="col-sm-12">
                     <router-link :to="{ name: 'transaction', params: { hash: transaction.hash } }">
-                      <span v-if="transaction.name">Wallet created</span>
+                      <span v-if="transaction.name">Создание кабинета избирателя</span>
                       <span v-else-if="transaction.to && transaction.to === keyPair.publicKey">
                         <strong v-numeral="transaction.amount"/> funds received
                       </span>
@@ -73,11 +73,11 @@
         </div>
         <div class="col-md-6">
           <div class="card mt-5">
-            <div class="card-header">Add funds</div>
+            <div class="card-header">Выбор голосования</div>
             <div class="card-body">
               <form @submit.prevent="addFunds">
                 <div class="form-group">
-                  <label class="d-block">Select amount to be added:</label>
+                  <label class="d-block">Выберите голосование из списка:</label>
                   <div v-for="variant in variants" :key="variant.id" class="form-check form-check-inline">
                     <input :id="variant.id" :value="variant.amount" :checked="amountToAdd == variant.amount" v-model="amountToAdd" class="form-check-input" type="radio">
                     <label :for="variant.id" class="form-check-label">${{ variant.amount }}</label>
@@ -89,8 +89,11 @@
           </div>
 
           <div class="card mt-5">
-            <div class="card-header">Transfer funds</div>
+            <div class="card-header">Голосование</div>
             <div class="card-body">
+              <div>
+                <vue-poll v-bind="options" @addvote="addVote"/>
+              </div>
               <form @submit.prevent="transfer">
                 <div class="form-group">
                   <label>Receiver:</label>
@@ -122,12 +125,14 @@
   import Modal from '../components/Modal.vue'
   import Navbar from '../components/Navbar.vue'
   import Spinner from '../components/Spinner.vue'
+  import VuePoll from 'vue-poll'
 
   module.exports = {
     components: {
       Modal,
       Navbar,
-      Spinner
+      Spinner,
+      VuePoll
     },
     data() {
       return {
@@ -135,6 +140,15 @@
         email: '',
         phone_number: '',
         residence: '',
+        options: {
+                    question: 'What\'s your favourite <strong>JS</strong> framework?',
+                    answers: [
+                        { value: 1, text: 'Vue', votes: 53 },
+                        { value: 2, text: 'React', votes: 35 },
+                        { value: 3, text: 'Angular', votes: 30 },
+                        { value: 4, text: 'Other', votes: 10 } 
+                    ]
+                },
         balance: 0,
         amountToAdd: 10,
         receiver: '',
@@ -159,7 +173,7 @@
       async loadUser() {
         if (this.keyPair === null) {
           this.$store.commit('logout')
-          this.$router.push({ name: 'home', email: 'home', phone_number: 'home', residence: 'home' })
+          this.$router.push({ name: 'home' })
           return
         }
 
@@ -222,6 +236,10 @@
           this.isSpinnerVisible = false
           this.$notify('error', error.toString())
         }
+      },
+
+      addVote(obj){
+          console.log('You voted ' + obj.value + '!');
       }
     },
     mounted() {

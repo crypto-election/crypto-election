@@ -8,12 +8,17 @@
       <div id="navbar" class="collapse navbar-collapse">
         <ul class="navbar-nav">
           <li class="nav-item">
-            <router-link :to="{ name: 'blockchain' }" class="nav-link">Blockchain</router-link>
+            <router-link :to="{ name: 'blockchain' }" class="nav-link">Блокчейн</router-link>
           </li>
         </ul>
         <ul v-if="isAuthorized" class="navbar-nav ml-auto">
           <li class="nav-item">
-            <a href="#" class="nav-link" @click="logout">Logout</a>
+            <router-link :to="{ name: 'newpoll' }" class="nav-link">Регистрация голосования</router-link>
+          </li>
+        </ul>
+        <ul v-if="isAuthorized" class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a href="#" class="nav-link" @click="logout">Выход</a>
           </li>
         </ul>
       </div>

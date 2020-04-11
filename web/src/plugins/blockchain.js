@@ -97,6 +97,16 @@ function deserializeTx (transaction) {
  * @prop {string} pass_code       - Participant`s passport code
  */
 
+/**
+ * Data for {@link IssueElectionTransaction}
+ * @typedef {Object} IssueElectionTransactionData
+ * @prop {string} name            - Elections name
+ * @prop {date} start_date        - Elections start_date
+ * @prop {date} finish_date       - Elections finish_date
+ * @prop {Array} options          - Elections options
+ */
+
+
 module.exports = {
   install(Vue) {
     Vue.prototype.$blockchain = {
@@ -113,6 +123,13 @@ module.exports = {
        * @param {*} keyPair 
        * @param {CreateParticipantTransactionData} data - Transcation data
        */
+      
+       /**
+       * Sends {@link IssueElectionTransaction}.
+       * @param {*} keyPair 
+       * @param {IssueElectionTransactionData} data - Transcation data
+       */
+
       createParticipant(keyPair, data) {
         // Describe transaction
         const transaction = CreateParticipantTransaction.create(data, keyPair).serialize()
@@ -120,7 +137,13 @@ module.exports = {
         // Send transaction into blockchain
         return Exonum.send(TRANSACTION_URL, transaction)
       },
+      createNewPoll(keyPair, data) {
+        // Describe transaction
+        const transaction = IssueElectionTransaction.create(data, keyPair).serialize()
 
+        // Send transaction into blockchain
+        return Exonum.send(TRANSACTION_URL, transaction)
+      },
       addFunds(keyPair, amountToAdd, seed) {
         // Describe transaction
         const transaction = new IssueTransaction(keyPair.publicKey)
