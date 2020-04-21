@@ -131,7 +131,7 @@
         start_date: "",
         finish_date: "",
         options: "",
-        keyPair: {},
+        //keyPair: {},
         transactions: []
       }
     },
