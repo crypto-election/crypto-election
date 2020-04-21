@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
-      <router-link :to="{ name: isAuthorized ? 'user' : 'home' }" class="navbar-brand">Cryptocurrency</router-link>
+      <router-link :to="{ name: isAuthorized ? 'newpoll' : 'home' }" class="navbar-brand">Crypto-election</router-link>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"/>
       </button>
@@ -23,7 +23,7 @@
 
 <script>
   module.exports = {
-    name: 'navbar',
+    name: 'navbaradmin',
     computed: {
       isAuthorized() {
         return this.$store.state.keyPair !== null

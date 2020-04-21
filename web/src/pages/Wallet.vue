@@ -212,31 +212,31 @@
         }
       },
 
-      async transfer() {
-        if (!this.$validateHex(this.receiver)) {
-          return this.$notify('error', 'Invalid public key is passed')
-        }
+      // async transfer() {
+      //   if (!this.$validateHex(this.receiver)) {
+      //     return this.$notify('error', 'Invalid public key is passed')
+      //   }
 
-        if (this.receiver === this.keyPair.publicKey) {
-          return this.$notify('error', 'Can not transfer funds to yourself')
-        }
+      //   if (this.receiver === this.keyPair.publicKey) {
+      //     return this.$notify('error', 'Can not transfer funds to yourself')
+      //   }
 
-        this.isSpinnerVisible = true
+      //   this.isSpinnerVisible = true
 
-        const seed = this.$blockchain.generateSeed()
+      //   const seed = this.$blockchain.generateSeed()
 
-        try {
-          await this.$blockchain.transfer(this.keyPair, this.receiver, this.amountToTransfer, seed)
-          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
-          this.balance = data.wallet.balance
-          this.transactions = data.transactions
-          this.isSpinnerVisible = false
-          this.$notify('success', 'Transfer transaction has been written into the blockchain')
-        } catch (error) {
-          this.isSpinnerVisible = false
-          this.$notify('error', error.toString())
-        }
-      },
+      //   try {
+      //     await this.$blockchain.transfer(this.keyPair, this.receiver, this.amountToTransfer, seed)
+      //     const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
+      //     this.balance = data.wallet.balance
+      //     this.transactions = data.transactions
+      //     this.isSpinnerVisible = false
+      //     this.$notify('success', 'Transfer transaction has been written into the blockchain')
+      //   } catch (error) {
+      //     this.isSpinnerVisible = false
+      //     this.$notify('error', error.toString())
+      //   }
+      //},
 
       addVote(obj){
           console.log('You voted ' + obj.value + '!');
