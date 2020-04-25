@@ -88,6 +88,14 @@ function deserializeTx (transaction) {
 }
 
 /**
+ * Data for {@link CreateAdninistrationTransaction}
+ * @typedef {Object} CreateAdministrationTransactionData
+ * @prop {string} name                - Administration`s name
+ * @prop {ArrayBuffer?} principal_key - Administration`s email
+ * @prop {Object} area                - Administration`s phone number
+ */
+
+/**
  * Data for {@link CreateParticipantTransaction}
  * @typedef {Object} CreateParticipantTransactionData
  * @prop {string} name            - Participant`s name
@@ -96,6 +104,7 @@ function deserializeTx (transaction) {
  * @prop {ArrayBuffer?} residence - Participant`s residence
  * @prop {string} pass_code       - Participant`s passport code
  */
+
 
 /**
  * Data for {@link IssueElectionTransaction}
@@ -117,6 +126,13 @@ module.exports = {
       generateSeed() {
         return Exonum.randomUint64()
       },
+      
+
+      /**
+       * Sends {@link CreateAdministrationTransaction}.
+       * @param {*} keyPair 
+       * @param {CreateAdministrationTransactionData} data - Transcation data
+       */
 
       /**
        * Sends {@link CreateParticipantTransaction}.
@@ -137,6 +153,15 @@ module.exports = {
         // Send transaction into blockchain
         return Exonum.send(TRANSACTION_URL, transaction)
       },
+
+      createAdministration(keyPair, data) {
+        // Describe transaction
+        const transaction = CreateAdministrationTransaction.create(data, keyPair).serialize()
+
+        // Send transaction into blockchain
+        return Exonum.send(TRANSACTION_URL, transaction)
+      },
+
       createNewPoll(keyPair, data) {
         // Describe transaction
         const transaction = IssueElectionTransaction.create(data, keyPair).serialize()
@@ -172,7 +197,57 @@ module.exports = {
         // Send transaction into blockchain
         return transaction.send(TRANSACTION_URL, data, keyPair.secretKey)
       },
+      //my big code
+      getAdministration(publicKey) {
+        return axios.get('/api/services/supervisor/consensus-config').then(response => {
+          // actual list of public keys of validators
+          const validators = response.data.validator_keys.map(validator => validator.consensus_key)
 
+          return axios.get(`${SERVICE_PUBLIC_API_PATH}/administrations/info?key=${publicKey}`)
+              .then(response => response.data)
+              .then(({ block_proof, object_proof, history }) => {
+                Exonum.verifyBlock(block_proof, validators)
+                // verify table timestamps in the root tree
+                const tableRootHash = Exonum.verifyTable(
+                    object_proof.to_table,
+                    block_proof.block.state_hash,
+                    `${SERVICE_NAME}.administrations`)
+
+                // find wallet in the tree of all wallets
+                const administrationProof = new Exonum.MapProof(
+                    object_proof.to_object,
+                    Exonum.MapProof.rawKey(Exonum.PublicKey),
+                    Administration)
+                if (administrationProof.merkleRoot !== tableRootHash)
+                  throw new Error('Administration proof is corrupted')
+
+                const administration = administrationProof.entries.get(Exonum.publicKeyToAddress(publicKey))
+                if (typeof administration == 'undefined') throw new Error('Administration not found')
+
+                const verifiedTransactions = new Exonum.ListProof(history.proof, Exonum.Hash)
+                const hexHistoryHash = Exonum.uint8ArrayToHexadecimal(new Uint8Array(administration.history_hash.data))
+                if (verifiedTransactions.merkleRoot !== hexHistoryHash) throw new Error('Transactions proof is corrupted')
+
+                const validIndexes = verifiedTransactions
+                    .entries
+                    .every(({ index }, i) => i === index)
+                if (!validIndexes) throw new Error('Invalid transaction indexes in the proof')
+
+                // deserialize transactions
+                const transactions = history.transactions.map(deserializeTx)
+
+                const correctHashes = transactions.every(({ hash }, i) => verifiedTransactions.entries[i].value === hash)
+                if (!correctHashes) throw new Error('Transaction hash mismatch')
+
+                return {
+                  block: block_proof.block,
+                  administrations,
+                  transactions
+                }
+            })
+        })
+      },
+      //end my big code
       getParticipant(publicKey) {
         return axios.get('/api/services/supervisor/consensus-config').then(response => {
           // actual list of public keys of validators

@@ -75,15 +75,17 @@
           <div class="card mt-5">
             <div class="card-header">Выбор голосования</div>
             <div class="card-body">
-              <form @submit.prevent="addFunds">
+              <form @submit.prevent="getElection">
                 <div class="form-group">
                   <label class="d-block">Выберите голосование из списка:</label>
-                  <div v-for="variant in variants" :key="variant.id" class="form-check form-check-inline">
-                    <input :id="variant.id" :value="variant.amount" :checked="amountToAdd == variant.amount" v-model="amountToAdd" class="form-check-input" type="radio">
-                    <label :for="variant.id" class="form-check-label">${{ variant.amount }}</label>
-                  </div>
+                  <select v-model="selectedform">
+                    <option v-for="optionform in optionsform" v-bind:value="optionform.value">
+                      {{ optionform.text }}
+                    </option>
+                  </select>
+                  <span>Выбрано: {{ selectedform }}</span>
                 </div>
-                <button type="submit" class="btn btn-primary">Add funds</button>
+                <button type="submit" class="btn btn-primary">Выбор голосования</button>
               </form>
             </div>
           </div>
@@ -94,22 +96,6 @@
               <div>
                 <vue-poll v-bind="options" @addvote="addVote"/>
               </div>
-              <form @submit.prevent="transfer">
-                <div class="form-group">
-                  <label>Receiver:</label>
-                  <input v-model="receiver" type="text" class="form-control" placeholder="Enter public key" required>
-                </div>
-                <div class="form-group">
-                  <label>Amount:</label>
-                  <div class="input-group">
-                    <div class="input-group-prepend">
-                      <div class="input-group-text">$</div>
-                    </div>
-                    <input v-model="amountToTransfer" type="number" class="form-control" placeholder="Enter amount" min="0" required>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Transfer funds</button>
-              </form>
             </div>
           </div>
         </div>
@@ -149,17 +135,11 @@
                         { value: 4, text: 'Other', votes: 10 } 
                     ]
                 },
-        balance: 0,
-        amountToAdd: 10,
         receiver: '',
-        amountToTransfer: '',
         isSpinnerVisible: false,
         transactions: [],
-        variants: [
-          { id: 'ten', amount: 10 },
-          { id: 'fifty', amount: 50 },
-          { id: 'hundred', amount: 100 }
-        ]
+        selectedform: '',
+        optionsform: {}
       }
     },
     computed: Object.assign({
@@ -193,7 +173,23 @@
           this.$notify('error', error.toString())
         }
       },
+      async getElection(){
+        this.isSpinnerVisible = true
 
+        const seed = this.$blockchain.generateSeed()
+        // help me
+        try {
+          await this.$blockchain.getElection(this.keyPair, seed)
+          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
+          this.optionsform = data.election.name
+          this.transactions = data.transactions
+          this.isSpinnerVisible = false
+          this.$notify('success', 'Get election transaction has been written into the blockchain')
+        } catch (error) {
+          this.isSpinnerVisible = false
+          this.$notify('error', error.toString())
+        }
+      },
       async addFunds() {
         this.isSpinnerVisible = true
 
