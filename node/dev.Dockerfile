@@ -8,12 +8,13 @@ RUN apt-get update; \
             build-essential \
             clang-7 \
             gdb \
+            gdbserver \
             libprotobuf-dev \
             librocksdb-dev \
             libsnappy-dev \
             libsodium-dev \
-            lld-7 \
-            lldb-7 \
+#            lld-7 \
+#            lldb-7 \
             pkg-config \
             protobuf-compiler \
             software-properties-common; \
@@ -37,7 +38,7 @@ RUN mkdir node/src/ \
 COPY node/build.rs node/build.rs
 COPY node/src node/src
 COPY proto proto
-RUN cd node && cargo build && cargo install --path .
+RUN cd node && cargo build
 
 COPY node/launch*.sh ./
 
@@ -45,4 +46,4 @@ WORKDIR /usr/src/cfg
 
 COPY cfg/crypto-election.yml ./
 
-CMD ["../launch.sh"]
+CMD ["../launch-dev.sh"]

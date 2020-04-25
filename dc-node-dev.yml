@@ -4,6 +4,7 @@ version: "3.7"
 services: 
   node:
     build: { context: ., dockerfile: node/dev.Dockerfile }
+    cap_add: [ SYS_PTRACE ]
     links: [ exonum_launcher ]
     ports: [ "8000:8000" ]
   exonum_launcher:
