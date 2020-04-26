@@ -9,6 +9,7 @@ services:
     exonum_launcher:
         image: integrer/exonum-launcher:0.2.0-exonum-1.0.0-rc.3
     web:
-        build: { context: ., dockerfile: web/Dockerfile }
+        build: { context: ., dockerfile: web/dev.Dockerfile }
         links: [ node ]
         ports: [ "8008:8008" ]
+        volumes: [ "./web:/usr/src/web:ro" ]
