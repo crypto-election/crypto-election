@@ -20,7 +20,7 @@ use crypto_election_node::{
     constant::{BLOCKCHAIN_SERVICE_ID, BLOCKCHAIN_SERVICE_NAME},
     model::{
         geo::Polygon,
-        public_api::{AdministrationInfo, KeyQuery, ParticipantInfo},
+        public_api::{AdministrationInfo, ElectionInfo, KeyQuery, ParticipantInfo},
         transactions::{CreateAdministration, CreateParticipant, IssueElection, Vote},
         Administration, AdministrationAddress, Election, ElectionAddress, Participant,
     },
@@ -96,6 +96,7 @@ impl ElectionApi {
 
     async fn issue_election(
         &self,
+        addr: Hash,
         name: &str,
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,
@@ -105,7 +106,7 @@ impl ElectionApi {
         let tx = key_pair.issue_election(
             BLOCKCHAIN_SERVICE_ID,
             IssueElection {
-                addr: hash(&KeyPair::random().secret_key()[..]),
+                addr,
                 name: name.to_owned(),
                 start_date: start_date.to_owned(),
                 finish_date: finish_date.to_owned(),
@@ -243,6 +244,41 @@ impl ElectionApi {
             .find(|(&key, _)| key == address)?;
 
         administration.cloned()
+    }
+
+    async fn get_election(&self, addr: &Hash) -> Option<Election> {
+        let election_info = self
+            .inner
+            .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
+            .query(&KeyQuery { key: *addr })
+            .get::<ElectionInfo>("v1/elections/info")
+            .await
+            .unwrap();
+
+        // Check parts of the proof returned together with the wallet.
+        let state_hash = election_info.block_proof.block.state_hash;
+        let to_table = election_info
+            .object_proof
+            .to_table
+            .check_against_hash(state_hash)
+            .unwrap();
+        let table_entries: Vec<_> = to_table.entries().collect();
+        assert_eq!(table_entries.len(), 1);
+        assert_eq!(
+            *table_entries[0].0,
+            format!("{}.elections", BLOCKCHAIN_SERVICE_NAME)
+        );
+        let table_hash = *table_entries[0].1;
+
+        let to_election = election_info
+            .object_proof
+            .to_object
+            .check_against_hash(table_hash)
+            .unwrap();
+
+        let (_, election) = to_election.all_entries().find(|(&key, _)| key == *addr)?;
+
+        election.cloned()
     }
 
     async fn get_active_elections(&self, addr: &AdministrationAddress) -> Vec<Election> {
@@ -417,13 +453,17 @@ async fn issue_election() {
 
     assert!(elections_before.is_empty());
 
-    let now = time_provider.time();
+    let start_date = time_provider.time();
+    let finish_date = start_date + Duration::hours(1);
+
+    let election_address = hash(&KeyPair::random().secret_key()[..]);
 
     let create_election_tx = api
         .issue_election(
+            election_address,
             election1::NAME,
-            &now,
-            &(now + Duration::hours(1)),
+            &start_date,
+            &finish_date,
             election1::OPTIONS,
             &key_administration,
         )
@@ -439,6 +479,16 @@ async fn issue_election() {
         .await;
 
     assert_eq!(elections_after.len(), 1);
+
+    let election = api.get_election(&election_address).await.unwrap();
+
+    assert_eq!(election1::NAME, election.name);
+    assert_eq!(start_date, election.start_date);
+    assert_eq!(finish_date, election.finish_date);
+    assert_eq!(
+        pub_key_address(key_administration.public_key()),
+        election.issuer
+    )
 }
 
 #[tokio::test]
@@ -472,8 +522,11 @@ async fn election_results_counting() {
 
     let now = time_provider.time();
 
+    let election_address = hash(&KeyPair::random().secret_key()[..]);
+
     let create_election_tx = api
         .issue_election(
+            election_address,
             election1::NAME,
             &now,
             &(now + Duration::hours(1)),
