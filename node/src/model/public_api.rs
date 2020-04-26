@@ -11,8 +11,9 @@ use exonum_merkledb::{
 };
 
 use super::{
-    wrappers::{HashedKeyModeWrapper, RawKeyModeWrapper, TypeWrapper},
-    Administration, AdministrationAddress, Election, Participant, ParticipantAddress,
+    wrappers::{RawKeyModeWrapper, TypeWrapper},
+    Administration, AdministrationAddress, Election, ElectionAddress, Participant,
+    ParticipantAddress,
 };
 use crate::schema::IndexPair;
 use exonum::blockchain::IndexProof;
@@ -22,7 +23,7 @@ use exonum_merkledb::proof_map::ToProofPath;
 
 pub type ParticipantInfo = ProofedInfo<ParticipantAddress, Participant, RawKeyModeWrapper>;
 pub type AdministrationInfo = ProofedInfo<AdministrationAddress, Administration, RawKeyModeWrapper>;
-pub type ElectionInfo = ProofedInfo<i64, Election, HashedKeyModeWrapper>;
+pub type ElectionInfo = ProofedInfo<ElectionAddress, Election, RawKeyModeWrapper>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProofedInfo<K, V: Debug, KeyMode: TypeWrapper + Debug>

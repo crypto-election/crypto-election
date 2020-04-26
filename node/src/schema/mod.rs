@@ -54,7 +54,7 @@ pub struct Schema<T: Access> {
     pub participant_location_history:
         Group<T, ParticipantAddress, ProofListIndex<T::Base, TimePositionInfo>>,
     pub administrations: RawProofMapIndex<T::Base, AdministrationAddress, Administration>,
-    pub elections: ProofMapIndex<T::Base, ElectionAddress, Election>,
+    pub elections: RawProofMapIndex<T::Base, ElectionAddress, Election>,
     /// Elections of specific administrations.
     pub administration_elections:
         Group<T, AdministrationAddress, ProofListIndex<T::Base, ElectionAddress>>,
@@ -272,16 +272,15 @@ where
     pub fn issue_election(
         &mut self,
         name: &str,
+        election_address: ElectionAddress,
         author_key: &AdministrationAddress,
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,
         options: &[String],
         transaction: &Hash,
-    ) -> i64 {
-        let election_addr = self.public.elections.keys().max().map_or(0, |i| i + 1);
-
+    ) {
         let election = {
-            let mut history = self.election_history.get(&election_addr);
+            let mut history = self.election_history.get(&election_address);
             history.push(*transaction);
             let history_hash = history.object_hash();
 
@@ -300,7 +299,7 @@ where
                 .collect();
 
             Election {
-                addr: election_addr,
+                addr: election_address,
                 name: name.to_owned(),
                 issuer: *author_key,
                 start_date: *start_date,
@@ -312,14 +311,12 @@ where
             }
         };
 
-        self.public.elections.put(&election_addr, election);
+        self.public.elections.put(&election_address, election);
 
         self.public
             .administration_elections
             .get(author_key)
-            .push(election_addr);
-
-        election_addr
+            .push(election_address);
     }
 
     pub fn vote(

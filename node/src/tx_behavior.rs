@@ -83,6 +83,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
 
         schema.issue_election(
             &arg.name,
+            arg.addr,
             &issuer,
             &arg.start_date,
             &arg.finish_date,

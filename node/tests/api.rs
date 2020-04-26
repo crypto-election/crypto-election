@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::SystemTime};
 use chrono::{DateTime, Duration, Utc};
 
 use exonum::{
-    crypto::{Hash, KeyPair, PublicKey},
+    crypto::{hash, Hash, KeyPair, PublicKey},
     helpers::Height,
     messages::{AnyTx, Verified},
     runtime::{CallerAddress, InstanceId},
@@ -22,7 +22,7 @@ use crypto_election_node::{
         geo::Polygon,
         public_api::{AdministrationInfo, KeyQuery, ParticipantInfo},
         transactions::{CreateAdministration, CreateParticipant, IssueElection, Vote},
-        Administration, AdministrationAddress, Election, Participant,
+        Administration, AdministrationAddress, Election, ElectionAddress, Participant,
     },
     service::ElectionService,
     ElectionInterface,
@@ -105,6 +105,7 @@ impl ElectionApi {
         let tx = key_pair.issue_election(
             BLOCKCHAIN_SERVICE_ID,
             IssueElection {
+                addr: hash(&KeyPair::random().secret_key()[..]),
                 name: name.to_owned(),
                 start_date: start_date.to_owned(),
                 finish_date: finish_date.to_owned(),
@@ -115,7 +116,12 @@ impl ElectionApi {
         tx
     }
 
-    async fn vote(&self, election_id: i64, option_id: i32, key_pair: &KeyPair) -> Verified<AnyTx> {
+    async fn vote(
+        &self,
+        election_id: ElectionAddress,
+        option_id: i32,
+        key_pair: &KeyPair,
+    ) -> Verified<AnyTx> {
         let tx = key_pair.vote(
             BLOCKCHAIN_SERVICE_ID,
             Vote {
@@ -248,7 +254,7 @@ impl ElectionApi {
             .unwrap()
     }
 
-    async fn get_election_result(&self, id: i64) -> HashMap<i32, u32> {
+    async fn get_election_result(&self, id: ElectionAddress) -> HashMap<i32, u32> {
         self.inner
             .public(ApiKind::Service(BLOCKCHAIN_SERVICE_NAME))
             .query(&KeyQuery { key: id })

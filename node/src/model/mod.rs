@@ -59,7 +59,7 @@ pub struct Administration {
     pub history_hash: Hash,
 }
 
-pub type ElectionAddress = i64;
+pub type ElectionAddress = Hash;
 
 #[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
 #[protobuf_convert(source = "proto::Election", serde_pb_convert)]

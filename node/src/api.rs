@@ -4,7 +4,7 @@ use exonum::{crypto::PublicKey, runtime::CallerAddress};
 use exonum_rust_runtime::api::{self, ServiceApiBuilder, ServiceApiState};
 
 use crate::{
-    model::{public_api::*, AdministrationAddress, Election},
+    model::{public_api::*, AdministrationAddress, Election, ElectionAddress},
     schema::SchemaImpl,
 };
 
@@ -70,7 +70,7 @@ impl PublicApi {
     /// `v1/elections/info`
     pub async fn election_info(
         state: ServiceApiState,
-        query: KeyQuery<i64>,
+        query: KeyQuery<ElectionAddress>,
     ) -> api::Result<ElectionInfo> {
         let index_pair = {
             let schema = SchemaImpl::new(state.service_data());
@@ -126,7 +126,7 @@ impl PublicApi {
 
     pub async fn election_results(
         state: ServiceApiState,
-        query: KeyQuery<i64>,
+        query: KeyQuery<ElectionAddress>,
     ) -> api::Result<HashMap<i32, u32>> {
         SchemaImpl::new(state.service_data())
             .public
