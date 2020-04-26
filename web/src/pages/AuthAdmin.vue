@@ -83,7 +83,8 @@ module.exports = {
     return {
       name: "",
       principal_key: '',
-      area: { exterior:[], interior:[] },
+      area: { exterior: [], interior: [] },
+      secretKey: "",
       keyPair: {},
       isModalVisible: false,
       isSpinnerVisible: false

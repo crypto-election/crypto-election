@@ -1,6 +1,6 @@
 <template>
   <div>
-    <navbaradmin/>
+    <navbarAdmin />
 
     <div class="container">
       <div class="row">
@@ -123,6 +123,7 @@
       NavbarAdmin,
       Spinner
     },
+
     data() {
       return {
         isSpinnerVisible: false,
@@ -135,9 +136,15 @@
         transactions: []
       }
     },
-    computed: Object.assign({},
-      mapState({ keyPair: state => state.keyPair })
-    ),
+
+    computed: Object.assign({
+      reverseTransactions() {
+        return this.transactions.slice().reverse()
+      }
+    }, mapState({
+      keyPair: state => state.keyPair
+    })),
+    
     methods: {
       async loadUser() {
         if (this.keyPair === null) {
@@ -159,35 +166,42 @@
           this.$notify('error', error.toString())
         }
       },
+
       async newpoll() {
-      if (!this.name) {
-        return this.$notify("error", "The name is a required field");
+        if (!this.name) {
+          return this.$notify("error", "The name is a required field");
+        }
+        if (!this.options) {
+          return this.$notify("error", "The options is a required field");
+        }
+
+        this.isSpinnerVisible = true;
+
+        try {
+          await this.$blockchain.createNewPoll(this.keyPair, {
+            name: this.name,
+          //  start_date: this.start_date,
+          //  finish_date: this.finish_date,
+          //  options: this.options
+          });
+
+          this.name = "";
+          //this.start_date = "";
+          //this.finish_date = "";
+          //this.options = "";
+
+          this.isSpinnerVisible = false;
+        } catch (error) {
+          this.isSpinnerVisible = false;
+          this.$notify("error", error.toString());
+        }
       }
-      if (!this.options) {
-        return this.$notify("error", "The options is a required field");
-      }
-
-      this.isSpinnerVisible = true;
-
-      try {
-        await this.$blockchain.createNewPoll(this.keyPair, {
-          name: this.name,
-        //  start_date: this.start_date,
-        //  finish_date: this.finish_date,
-        //  options: this.options
-        });
-
-        this.name = "";
-        //this.start_date = "";
-        //this.finish_date = "";
-        //this.options = "";
-
-        this.isSpinnerVisible = false;
-      } catch (error) {
-        this.isSpinnerVisible = false;
-        this.$notify("error", error.toString());
-      }
-    }
+    },
+    
+    mounted() {
+      this.$nextTick(function() {
+        this.loadUser()
+      })
     }
   }
 </script>

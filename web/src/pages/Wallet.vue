@@ -79,7 +79,7 @@
                 <div class="form-group">
                   <label class="d-block">Выберите голосование из списка:</label>
                   <select v-model="selectedform">
-                    <option v-for="optionform in optionsform" v-bind:value="optionform.value">
+                    <option v-for="optionform in optionsform" :key="optionform.value" :value="optionform.value">
                       {{ optionform.text }}
                     </option>
                   </select>
@@ -120,27 +120,26 @@
       Spinner,
       VuePoll
     },
-    data() {
-      return {
+    data() { return {
         name: '',
         email: '',
         phone_number: '',
         residence: '',
         options: {
-                    question: 'What\'s your favourite <strong>JS</strong> framework?',
-                    answers: [
-                        { value: 1, text: 'Vue', votes: 53 },
-                        { value: 2, text: 'React', votes: 35 },
-                        { value: 3, text: 'Angular', votes: 30 },
-                        { value: 4, text: 'Other', votes: 10 } 
-                    ]
-                },
+          question: 'What\'s your favourite <strong>JS</strong> framework?',
+          answers: [
+            { value: 1, text: 'Vue', votes: 53 },
+            { value: 2, text: 'React', votes: 35 },
+            { value: 3, text: 'Angular', votes: 30 },
+            { value: 4, text: 'Other', votes: 10 } 
+          ]
+        },
         receiver: '',
         isSpinnerVisible: false,
         transactions: [],
         selectedform: '',
         optionsform: {}
-      }
+      };
     },
     computed: Object.assign({
       reverseTransactions() {
