@@ -48,7 +48,7 @@ struct ElectionApi {
 }
 
 impl ElectionApi {
-    async fn create_participant(
+    async fn create_participant_with_random_key(
         &self,
         name: &str,
         email: &str,
@@ -56,8 +56,23 @@ impl ElectionApi {
         residence: &Option<PublicKey>,
         pass_code: &str,
     ) -> (Verified<AnyTx>, KeyPair) {
-        let key_pair = KeyPair::random();
+        let key = KeyPair::random();
+        let tx = self
+            .create_participant(name, email, phone_number, residence, pass_code, &key)
+            .await;
 
+        (tx, key)
+    }
+
+    async fn create_participant(
+        &self,
+        name: &str,
+        email: &str,
+        phone_number: &str,
+        residence: &Option<PublicKey>,
+        pass_code: &str,
+        key_pair: &KeyPair,
+    ) -> Verified<AnyTx> {
         let tx = key_pair.create_participant(
             BLOCKCHAIN_SERVICE_ID,
             CreateParticipant {
@@ -71,7 +86,7 @@ impl ElectionApi {
 
         self.assert_tx_hash(&tx).await;
 
-        (tx, key_pair)
+        tx
     }
 
     async fn create_administration(
@@ -79,10 +94,9 @@ impl ElectionApi {
         name: &str,
         principal: &Option<PublicKey>,
         area: &Polygon,
-    ) -> (Verified<AnyTx>, KeyPair) {
-        let key_pair = KeyPair::random();
-
-        let tx = key_pair.create_administration(
+        administration_key: &KeyPair,
+    ) -> Verified<AnyTx> {
+        let tx = administration_key.create_administration(
             BLOCKCHAIN_SERVICE_ID,
             CreateAdministration {
                 name: name.to_owned(),
@@ -91,6 +105,20 @@ impl ElectionApi {
             },
         );
         self.assert_tx_hash(&tx).await;
+        tx
+    }
+
+    async fn create_administration_with_random_key(
+        &self,
+        name: &str,
+        principal: &Option<PublicKey>,
+        area: &Polygon,
+    ) -> (Verified<AnyTx>, KeyPair) {
+        let key_pair = KeyPair::random();
+
+        let tx = self
+            .create_administration(name, principal, area, &key_pair)
+            .await;
         (tx, key_pair)
     }
 
@@ -101,9 +129,9 @@ impl ElectionApi {
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,
         options: &[&str],
-        key_pair: &KeyPair,
+        issuer_key: &KeyPair,
     ) -> Verified<AnyTx> {
-        let tx = key_pair.issue_election(
+        let tx = issuer_key.issue_election(
             BLOCKCHAIN_SERVICE_ID,
             IssueElection {
                 addr,
@@ -135,25 +163,40 @@ impl ElectionApi {
         tx
     }
 
-    async fn assert_tx_status(&self, tx_hash: Hash, expected_status: &serde_json::Value) {
-        let info: serde_json::Value = self
-            .inner
+    async fn tx_info(&self, tx_hash: Hash) -> serde_json::Value {
+        self.inner
             .public(ApiKind::Explorer)
             .query(&TransactionQuery::new(tx_hash))
             .get("v1/transactions")
             .await
-            .unwrap();
+            .unwrap()
+    }
 
-        if let serde_json::Value::Object(mut info) = info {
+    async fn is_tx(&self, tx_hash: Hash, expected_status: &serde_json::Value) -> bool {
+        if let serde_json::Value::Object(mut info) = self.tx_info(tx_hash).await {
             let tx_status = info.remove("status").unwrap();
-            assert_eq!(tx_status, *expected_status);
+            tx_status == *expected_status
         } else {
             panic!("Invalid transaction info format, object expected");
         }
     }
 
+    async fn assert_tx_status(&self, tx_hash: Hash, expected_status: &serde_json::Value) {
+        assert!(self.is_tx(tx_hash, expected_status).await)
+    }
+
+    async fn assert_tx_status_not(&self, tx_hash: Hash, expected_status: &serde_json::Value) {
+        assert!(!self.is_tx(tx_hash, expected_status).await)
+    }
+
     async fn assert_tx_successful(&self, tx_hash: Hash) {
         self.assert_tx_status(tx_hash, &constant::tx_status_success())
+            .await
+    }
+
+    async fn assert_tx_fail(&self, tx_hash: Hash) {
+        // TODO: Create better implementation
+        self.assert_tx_status_not(tx_hash, &constant::tx_status_success())
             .await
     }
 
@@ -351,7 +394,7 @@ async fn create_participant() {
     let (mut test_kit, api, _) = create_test_kit();
 
     let (tx, _) = api
-        .create_participant(
+        .create_participant_with_random_key(
             participant1::NAME,
             participant1::EMAIL,
             participant1::PHONE_NUMBER,
@@ -378,7 +421,7 @@ async fn create_administration() {
     let (mut test_kit, api, _) = create_test_kit();
 
     let (tx, _) = api
-        .create_administration(administration1::NAME, &None, &empty_polygon())
+        .create_administration_with_random_key(administration1::NAME, &None, &empty_polygon())
         .await;
 
     test_kit.create_block();
@@ -391,15 +434,81 @@ async fn create_administration() {
 }
 
 #[tokio::test]
+async fn reject_create_different_participants_with_same_keys() {
+    let (mut test_kit, api, _) = create_test_kit();
+
+    let (tx, key) = api
+        .create_participant_with_random_key(
+            "John Doe",
+            "john_doe@example.com",
+            "1212",
+            &None,
+            "111",
+        )
+        .await;
+
+    test_kit.create_block();
+
+    api.assert_tx_successful(tx.object_hash()).await;
+
+    // using same key
+    let tx = api
+        .create_participant(
+            "John Smith",
+            "john_smith@example.com",
+            "2121",
+            &None,
+            "222",
+            &key,
+        )
+        .await;
+
+    test_kit.create_block();
+
+    api.assert_tx_fail(tx.object_hash()).await;
+}
+
+#[tokio::test]
+async fn reject_create_different_administrations_with_same_keys() {
+    let (mut test_kit, api, _) = create_test_kit();
+
+    let (tx, key) = api
+        .create_administration_with_random_key(
+            administration1::NAME,
+            &None,
+            &empty_polygon(),
+        )
+        .await;
+
+    test_kit.create_block();
+
+    api.assert_tx_successful(tx.object_hash()).await;
+
+    // using same key
+    let tx = api
+        .create_administration(
+            administration2::NAME,
+            &Some(key.public_key()),
+            &empty_polygon(),
+            &key,
+        )
+        .await;
+
+    test_kit.create_block();
+
+    api.assert_tx_fail(tx.object_hash()).await;
+}
+
+#[tokio::test]
 #[ignore = "not implemented yet"]
 async fn select_administration_principals() {
     let (mut test_kit, api, _) = create_test_kit();
 
     let (tx_a1, _) = api
-        .create_administration(administration1::NAME, &None, &empty_polygon())
+        .create_administration_with_random_key(administration1::NAME, &None, &empty_polygon())
         .await;
     let (tx_a2, _) = api
-        .create_administration(
+        .create_administration_with_random_key(
             administration2::NAME,
             &Some(tx_a1.author()),
             &empty_polygon(),
@@ -442,7 +551,7 @@ async fn issue_election() {
     let (mut test_kit, api, time_provider) = create_test_kit();
 
     let (tx_administration, key_administration) = api
-        .create_administration(administration1::NAME, &None, &empty_polygon())
+        .create_administration_with_random_key(administration1::NAME, &None, &empty_polygon())
         .await;
 
     test_kit.create_block();
@@ -492,10 +601,64 @@ async fn issue_election() {
 }
 
 #[tokio::test]
+async fn reject_issuing_election_by_unknown_administration() {
+    let (mut test_kit, api, time_provider) = create_test_kit();
+
+    let start_date = time_provider.time();
+    let finish_date = start_date + Duration::hours(1);
+
+    // Case 1: Issuing election with random key
+    let create_election_tx = api
+        .issue_election(
+            hash(&KeyPair::random().secret_key()[..]),
+            election1::NAME,
+            &start_date,
+            &finish_date,
+            election1::OPTIONS,
+            &KeyPair::random(),
+        )
+        .await;
+
+    test_kit.create_block();
+
+    api.assert_tx_fail(create_election_tx.object_hash()).await;
+
+    // Case 2: Issuing election with participant key
+    let (tx, participant_key) = api
+        .create_participant_with_random_key(
+            participant1::NAME,
+            participant1::EMAIL,
+            participant1::PHONE_NUMBER,
+            &None,
+            participant1::PASS_CODE,
+        )
+        .await;
+
+    test_kit.create_block();
+
+    api.assert_tx_successful(tx.object_hash()).await;
+
+    let create_election_tx = api
+        .issue_election(
+            hash(&KeyPair::random().secret_key()[..]),
+            election1::NAME,
+            &start_date,
+            &finish_date,
+            election1::OPTIONS,
+            &participant_key,
+        )
+        .await;
+
+    test_kit.create_block();
+
+    api.assert_tx_fail(create_election_tx.object_hash()).await;
+}
+
+#[tokio::test]
 async fn election_results_counting() {
     let (mut test_kit, api, time_provider) = create_test_kit();
     let (_, key_alice) = api
-        .create_participant(
+        .create_participant_with_random_key(
             participant1::NAME,
             participant1::EMAIL,
             participant1::PHONE_NUMBER,
@@ -505,7 +668,7 @@ async fn election_results_counting() {
         .await;
 
     let (_, key_bob) = api
-        .create_participant(
+        .create_participant_with_random_key(
             participant2::NAME,
             participant2::EMAIL,
             participant2::PHONE_NUMBER,
@@ -515,7 +678,7 @@ async fn election_results_counting() {
         .await;
 
     let (tx_administration, key_administration) = api
-        .create_administration(administration1::NAME, &None, &empty_polygon())
+        .create_administration_with_random_key(administration1::NAME, &None, &empty_polygon())
         .await;
 
     test_kit.create_block();
