@@ -177,8 +177,18 @@
         if (!this.name) {
           return this.$notify("error", "The name is a required field");
         }
-        if (!this.options) {
+        
+        let options = this.options.split(",").map(s => s.trim()).filter(s => s);
+        if (!options) {
           return this.$notify("error", "The options is a required field");
+        }
+
+        if (!this.start_date) {
+          return this.$notify("error", "The start date is a required field");
+        }
+
+        if (!this.finish_date) {
+          return this.$notify("error", "The finish date is a required field");
         }
 
         this.isSpinnerVisible = true;
@@ -188,7 +198,7 @@
             name: this.name,
             start_date: Date.parse(this.start_date),
             finish_date: Date.parse(this.finish_date),
-            options: this.options.split(",").map(s => s.trim())
+            options
           });
 
           this.name = "";
