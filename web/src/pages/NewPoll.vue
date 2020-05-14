@@ -56,7 +56,7 @@
           <div class="card mt-5">
             <div class="card-header">Регистрация голосования</div>
             <form @submit.prevent="newpoll">
-              <div class="form-group">
+              <div class="form-group px-2">
                 <label for="name" class="control-label">Название:</label>
                 <input
                   id="name"
@@ -67,27 +67,31 @@
                   required
                 >
               </div>
-              <div class="form-group">
+              <div class="form-group px-2">
+                
                 <label for="start_date" class="control-label">Дата начала голосования:</label>
-                <input
+                
+                <datetime
                   id="start_date"
-                  v-model.trim="start_date"
-                  type="date"
-                  class="form-control"
-                  maxlength="260"
-                >
+                  v-model="start_date"
+                  :min-datetime="new Date().toString()"
+                  input-class="form-control"
+                  type="datetime"
+                />
               </div>
-              <div class="form-group">
+              <div class="form-group px-2">
+                
                 <label for="finish_date" class="control-label">Дата конца голосования:</label>
-                <input
+                
+                <datetime
                   id="finish_date"
-                  v-model.trim="finish_date"
-                  type="date"
-                  class="form-control"
-                  maxlength="260"
-                >
+                  v-model="finish_date"
+                  :min-datetime="start_date"
+                  input-class="form-control"
+                  type="datetime"
+                />
               </div>
-              <div class="form-group">
+              <div class="form-group px-2">
                 <label for="options" class="control-label">Вопросы:</label>
                 <input
                   id="options"
@@ -99,15 +103,12 @@
                   required
                 >
               </div>
-              <button type="submit" class="btn btn-lg btn-block btn-primary">Создать голосование</button>
+              <button type="submit" class="btn btn-lg btn-block btn-primary px-2">Создать голосование</button>
             </form>
           </div>
         </div> 
       </div>
     </div>
-
-
-
 
     <spinner :visible="isSpinnerVisible"/>
   </div>
@@ -115,13 +116,18 @@
 
 <script>
   import { mapState } from 'vuex'
+
   import NavbarAdmin from '../components/NavbarAdmin.vue'
   import Spinner from '../components/Spinner.vue'
+
+  import { Datetime } from 'vue-datetime';
+  import 'vue-datetime/dist/vue-datetime.css'
 
   module.exports = {
     components: {
       NavbarAdmin,
-      Spinner
+      Spinner,
+      datetime: Datetime
     },
 
     data() {
@@ -129,8 +135,8 @@
         isSpinnerVisible: false,
         login: '',
         name: "",
-        start_date: "",
-        finish_date: "",
+        start_date: null,
+        finish_date: null,
         options: "",
         //keyPair: {},
         transactions: []
@@ -180,15 +186,15 @@
         try {
           await this.$blockchain.createNewPoll(this.keyPair, {
             name: this.name,
-          //  start_date: this.start_date,
-          //  finish_date: this.finish_date,
-          //  options: this.options
+            start_date: Date.parse(this.start_date),
+            finish_date: Date.parse(this.finish_date),
+            options: this.options.split(",").map(s => s.trim())
           });
 
           this.name = "";
-          //this.start_date = "";
-          //this.finish_date = "";
-          //this.options = "";
+          this.start_date = null;
+          this.finish_date = null;
+          this.options = "";
 
           this.isSpinnerVisible = false;
         } catch (error) {
