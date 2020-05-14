@@ -1,13 +1,13 @@
 Dockerfile
 .dockerignore
 target
-*/target
-*/Dockerfile
-*/.dockerignore
+**/target
+**/Dockerfile
+**/.dockerignore
 
-*/node_modules
-*/dist
-*/proto/*
+**/node_modules
+**/dist
+**/proto/*
 
 .git
 .gitignore
