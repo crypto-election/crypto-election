@@ -98,7 +98,7 @@ describe('Interaction with blockchain', () => {
   })
 
   it('should get wallet proof and verify it', async () => {
-    const data = await Vue.prototype.$blockchain.getWallet(keyPair.publicKey)
+    const data = await Vue.prototype.$blockchain.getParticipant(keyPair.publicKey)
 
     expect(data.wallet)
       .toEqual({

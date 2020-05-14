@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Election with blockchain demo",
   "author": "Exonum Team <exonum@bitfury.com>",
+  "repository": "https://github.com/crypto-election/crypto-election.git",
   "license": "Apache-2.0",
   "scripts": {
     "proto": "pbjs --keep-case -t static-module --root crypto_election --path node_modules/exonum-client/proto ../proto/service.proto -o ./proto/stubs.js",

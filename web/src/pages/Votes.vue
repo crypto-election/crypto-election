@@ -39,23 +39,24 @@
           <!-- As a link -->
           <nav class="nav flex-column">
             <button
-              :v-for="(navOptions, index) in options"
+              v-for="(navOption, index) in options"
+              :key="navOption.question"
               class="btn btn-primary"
               type="submit"
               @click="choiseFunc(index)"
-            >{{ navOptions.question }}
+            >{{ navOption.question }}
             </button>
           </nav>
         </div>
         <div class="col-md-6">
           <div class="card mt-5">
             <div class="card-header">Голосование</div>
-            <div>
+            <div class="col-12">
               <vue-poll
                 v-for="(option) of options"
                 :key="option.id"
                 v-bind="option"
-                @addvote="addVote()"
+                @addvote="addVote"
               />
             </div>
           </div>
@@ -79,7 +80,8 @@
     components: {
       Modal,
       Navbar,
-      Spinner
+      Spinner,
+      VuePoll
     },
     data() {
       return {
@@ -90,31 +92,28 @@
         // amountToTransfer: '',
         isSpinnerVisible: false,
         transactions: [],
-        choise: "",
-          visible: false,
-          options: {
-            1: {
-              question: "Какой для вас JS framework является лучшим?",
-              answers: [
-                { value: 1, text: "Vue", votes: 53 },
-                { value: 2, text: "React", votes: 35 },
-                { value: 3, text: "Angular", votes: 30 },
-                { value: 4, text: "Other", votes: 10 }
-              ]
-            },
-            2: {
-              question: "В каком вузе вы учитесь?",
-              answers: [
-                { value: 1, text: "ДОННУ", votes: 20 },
-                { value: 2, text: "ДОННТУ", votes: 17 },
-                { value: 3, text: "ДОНАУИГС", votes: 100 }
-              ]
-            }
+        choice: "",
+        visible: false,
+        options: {
+          1: {
+            question: "Какой для вас JS framework является лучшим?",
+            answers: [
+              { value: 1, text: "Vue", votes: 53 },
+              { value: 2, text: "React", votes: 35 },
+              { value: 3, text: "Angular", votes: 30 },
+              { value: 4, text: "Other", votes: 10 }
+            ]
+          },
+          2: {
+            question: "В каком вузе вы учитесь?",
+            answers: [
+              { value: 1, text: "ДОННУ", votes: 20 },
+              { value: 2, text: "ДОННТУ", votes: 17 },
+              { value: 3, text: "ДОНАУИГС", votes: 100 }
+            ]
           }
+        }
       }
-    },
-    components: {
-      VuePoll
     },
     computed: Object.assign({
       reverseTransactions() {
@@ -127,11 +126,8 @@
       addVote(obj){
         console.log('You voted ' + obj.value + '!');
       },
-      addVote: function(obj) {
-        console.log("You voted " + obj.value + "!");
-      },
       choiseFunc: function(a) {
-        this.choise = a;
+        this.choice = a;
       },
       async loadUser() {
         if (this.keyPair === null) {
@@ -143,10 +139,12 @@
         this.isSpinnerVisible = true
 
         try {
-          const data = await this.$blockchain.getWallet(this.keyPair.publicKey)
-          this.name = data.wallet.name
-          this.balance = data.wallet.balance
-          this.transactions = data.transactions
+          const { participant, transactions } =
+                  await this.$blockchain.getParticipant(this.keyPair.publicKey)
+          this.name = participant.name
+          this.email = participant.email
+          this.phone_number = participant.phone_number
+          this.transactions = transactions
           this.isSpinnerVisible = false
         } catch (error) {
           this.isSpinnerVisible = false
@@ -161,7 +159,7 @@
 
         try {
           await this.$blockchain.addFunds(this.keyPair, this.amountToAdd, seed)
-          const data = await this.$blockchain.getWallet(this.keyPair.publicKey)
+          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
           this.balance = data.wallet.balance
           this.transactions = data.transactions
           this.isSpinnerVisible = false
@@ -187,7 +185,7 @@
 
         try {
           await this.$blockchain.transfer(this.keyPair, this.receiver, this.amountToTransfer, seed)
-          const data = await this.$blockchain.getWallet(this.keyPair.publicKey)
+          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
           this.balance = data.wallet.balance
           this.transactions = data.transactions
           this.isSpinnerVisible = false

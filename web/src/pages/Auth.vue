@@ -3,9 +3,9 @@
     <div class="container">
       <div class="row justify-content-sm-center">
         <div class="col-md-6 col-md-offset-3">
-          <h1 class="mt-5 mb-4">Взод в акаунт</h1>
+          <h1 class="mt-5 mb-4">Вход в акаунт</h1>
           <tabs>
-            <!--Введение параметров в формы регистрации-->
+            <!-- Ввод данных в форму регистрации -->
             <tab :is-active="true" title="Регистрация">
               <form @submit.prevent="register">
                 <div class="form-group">
@@ -76,19 +76,19 @@
                 <button type="submit" class="btn btn-lg btn-block btn-primary">Регистрация</button>
               </form>
             </tab>
-            <tab title="Авторизация">
+            <tab title="Log in">
               <form @submit.prevent="login">
                 <div class="form-group">
-                  <label class="control-label">Секретный ключ:</label>
+                  <label class="control-label">Secret key:</label>
                   <input
                     v-model="secretKey"
                     type="text"
                     class="form-control"
-                    placeholder="Введите секретный ключ"
+                    placeholder="Enter secret key"
                     required
                   >
                 </div>
-                <button type="submit" class="btn btn-lg btn-block btn-primary">Вход</button>
+                <button type="submit" class="btn btn-lg btn-block btn-primary">Log in</button>
               </form>
             </tab>
           </tabs>
@@ -98,17 +98,17 @@
 
     <modal
       :visible="isModalVisible"
-      title="Акаунт был создан"
-      action-btn="Войти"
+      title="Wallet has been created"
+      action-btn="Log in"
       @close="closeModal"
       @submit="proceed"
     >
       <div
         class="alert alert-warning"
         role="alert"
-      >Сохраните секретный ключ в надежном месте. Он вам понадобится что бы войти на аккаунт в следующий раз.</div>
+      >Save the secret key in a safe place. You will need it to log in to the demo next time.</div>
       <div class="form-group">
-        <label>Секретный ключ:</label>
+        <label>Secret key:</label>
         <div>
           <code>{{ keyPair.secretKey }}</code>
         </div>
