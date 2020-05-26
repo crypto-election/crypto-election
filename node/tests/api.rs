@@ -473,11 +473,7 @@ async fn reject_create_different_administrations_with_same_keys() {
     let (mut test_kit, api, _) = create_test_kit();
 
     let (tx, key) = api
-        .create_administration_with_random_key(
-            administration1::NAME,
-            &None,
-            &empty_polygon(),
-        )
+        .create_administration_with_random_key(administration1::NAME, &None, &empty_polygon())
         .await;
 
     test_kit.create_block();
@@ -715,19 +711,26 @@ async fn election_results_counting() {
 
     assert_eq!(options.len(), 3);
 
-    let tx_vote_alice = api.vote(election.addr, options[0].id, &key_alice).await;
-    let tx_vote_bob = api.vote(election.addr, options[2].id, &key_bob).await;
+    let mut expected: HashMap<i32, u32> = options.iter().map(|op| (op.id, 0)).collect();
 
+    let results = api.get_election_result(election.addr).await;
+
+    assert_eq!(results, expected);
+
+    let alice_position = options[0].id;
+    let bob_position = options[2].id;
+
+    let tx_vote_alice = api.vote(election.addr, alice_position, &key_alice).await;
+    let tx_vote_bob = api.vote(election.addr, bob_position, &key_bob).await;
     test_kit.create_block();
 
     api.assert_tx_successful(tx_vote_alice.object_hash()).await;
     api.assert_tx_successful(tx_vote_bob.object_hash()).await;
 
+    *expected.get_mut(&bob_position).unwrap() += 1;
+    *expected.get_mut(&alice_position).unwrap() += 1;
+
     let results = api.get_election_result(election.addr).await;
 
-    assert_eq!(results.len(), 3);
-
-    assert_eq!(results[&0], 1);
-    assert_eq!(results[&1], 0);
-    assert_eq!(results[&2], 1);
+    assert_eq!(results, expected);
 }
