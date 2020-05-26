@@ -331,7 +331,7 @@ module.exports = {
         const transaction = VoteTransaction.create(payload, keyPair).serialize();
 
         return Exonum.send(TRANSACTION_URL, transaction)
-      }
+      },
       
       async getSuggestedElections(publicKey) {
         const path = `${SERVICE_PUBLIC_API_PATH}/elections/suggested-for?key=${publicKey}`;

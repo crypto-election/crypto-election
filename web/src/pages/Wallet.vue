@@ -206,7 +206,7 @@
       async vote(election, selected) {
         try {
           await this.$blockchain.vote(this.keyPair, election.addr, selected.value);
-        }
+        } finally {}
       }
     },
     mounted() {

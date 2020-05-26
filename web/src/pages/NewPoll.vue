@@ -31,7 +31,7 @@
                 </div>
               </li>
               <!-- eslint-disable-next-line vue/require-v-for-key -->
-              <li v-for="transaction in reverseTransactions" class="list-group-item">
+              <li v-for="transaction in reverseTransactions" :key="transaction.hash" class="list-group-item">
                 <div class="row">
                   <div class="col-sm-12">
                     <router-link :to="{ name: 'transaction', params: { hash: transaction.hash } }">
