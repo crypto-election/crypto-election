@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
+use chrono::{DateTime, Utc};
 use exonum::{
     blockchain::BlockProof,
     crypto::{Hash, PublicKey},
@@ -12,8 +13,8 @@ use exonum_merkledb::{
 
 use super::{
     wrappers::{RawKeyModeWrapper, TypeWrapper},
-    Administration, AdministrationAddress, Election, ElectionAddress, Participant,
-    ParticipantAddress,
+    Administration, AdministrationAddress, Election, ElectionAddress, ElectionOptionAddress,
+    Participant, ParticipantAddress,
 };
 use crate::schema::IndexPair;
 use exonum::blockchain::IndexProof;
@@ -127,4 +128,114 @@ where
     K: Debug + Clone + Copy,
 {
     pub key: K,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ElectionGroup {
+    pub organization_name: String,
+    pub elections: Vec<ElectionConvert>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ElectionConvert {
+    pub addr: ElectionAddress,
+    pub name: String,
+    pub start_date: DateTime<Utc>,
+    pub finish_date: DateTime<Utc>,
+    pub options: Vec<ElectionOptionConvert>,
+    pub is_cancelled: bool,
+    pub is_voted_yet: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ElectionOptionConvert {
+    pub id: ElectionOptionAddress,
+    pub title: String,
+    pub votes_count: Option<u32>,
+}
+
+impl ElectionConvert {
+    pub fn set_voted(&mut self) {
+        self.is_voted_yet = true;
+    }
+
+    fn from_metadata(
+        election: super::Election,
+        is_voted_yet: bool,
+        results: Option<&HashMap<ElectionOptionAddress, u32>>,
+    ) -> Self {
+        let mut options = Vec::with_capacity(election.options.len());
+
+        election
+            .options
+            .into_iter()
+            .map(|option| match results {
+                Some(res) => {
+                    let result = res.get(&option.id).map(|v| *v).unwrap_or(0);
+                    (option, result).into()
+                }
+                None => option.into(),
+            })
+            .for_each(|it| options.push(it));
+
+        Self {
+            addr: election.addr,
+            name: election.name,
+            start_date: election.start_date,
+            finish_date: election.finish_date,
+            options,
+            is_cancelled: election.is_cancelled,
+            is_voted_yet,
+        }
+    }
+}
+
+impl From<super::Election> for ElectionConvert {
+    fn from(from: super::Election) -> Self {
+        Self::from_metadata(from, false, None)
+    }
+}
+
+impl From<(super::Election, bool)> for ElectionConvert {
+    fn from(from: (super::Election, bool)) -> Self {
+        Self::from_metadata(from.0, from.1, None)
+    }
+}
+
+impl From<(super::Election, bool, &HashMap<ElectionOptionAddress, u32>)> for ElectionConvert {
+    fn from(from: (super::Election, bool, &HashMap<ElectionOptionAddress, u32>)) -> Self {
+        Self::from_metadata(from.0, from.1, Some(from.2))
+    }
+}
+
+impl From<super::ElectionOption> for ElectionOptionConvert {
+    fn from(from: super::ElectionOption) -> Self {
+        Self {
+            id: from.id,
+            title: from.title,
+            votes_count: None,
+        }
+    }
+}
+
+impl From<(super::ElectionOption, u32)> for ElectionOptionConvert {
+    fn from(from: (super::ElectionOption, u32)) -> Self {
+        Self {
+            votes_count: Some(from.1),
+            ..from.0.into()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub enum Node<K: Clone, V: Clone> {
+    WithChildren {
+        key: K,
+        value: V,
+        children: Vec<Node<K, V>>,
+    },
+    WithoutChildren {
+        key: K,
+        value: V,
+    },
 }
