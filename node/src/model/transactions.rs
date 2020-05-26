@@ -48,7 +48,7 @@ pub struct IssueElection {
 pub struct Vote {
     pub election_id: ElectionAddress,
     pub option_id: i32,
-    pub seed: i64,
+    pub seed: u64,
 }
 
 #[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
@@ -56,5 +56,5 @@ pub struct Vote {
 pub struct SubmitLocation {
     pub position: geo::Coordinate,
     pub date: DateTime<Utc>,
-    // ToDo: add seed field
+    pub seed: u64,
 }
