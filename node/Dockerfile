@@ -1,4 +1,4 @@
-FROM rust:1.42.0-buster
+FROM rust:1.43.1-buster
 
 ENV ROCKSDB_LIB_DIR=/usr/lib
 ENV SNAPPY_LIB_DIR=/usr/lib/x86_64-linux-gnu
@@ -25,7 +25,8 @@ WORKDIR /usr/src
 COPY Cargo.toml ./
 COPY node/Cargo.toml node/
 RUN mkdir node/src/ \
-    && echo "fn main() { panic!(\"if you see this, the build broke\") }" > node/src/main.rs \
+    && echo "fn main() { panic!(\"if you see this, the build broke\") }" \
+        > node/src/main.rs \
     && cargo build --release \
     # Clean target from dummy project files
     && rm -rf target/release/deps/crypto-election-node*
@@ -36,8 +37,7 @@ RUN mkdir node/src/ \
 COPY node/build.rs node/build.rs
 COPY node/src node/src
 COPY proto proto
-RUN cd node && cargo build --release && cargo install --path . \
-    && rm -rf target ../target
+RUN cd node && cargo install --path . && rm -rf target ../target
 
 COPY node/launch*.sh ./
 
