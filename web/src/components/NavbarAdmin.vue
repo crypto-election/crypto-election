@@ -13,7 +13,7 @@
         </ul>
         <ul v-if="isAuthorized" class="navbar-nav ml-auto">
           <li class="nav-item">
-            <a href="#" class="nav-link" @click="logout">Выход</a>
+            <a href="#/admin" class="nav-link" @click="logout">Выход</a>
           </li>
         </ul>
       </div>
