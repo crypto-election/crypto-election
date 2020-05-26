@@ -7,7 +7,7 @@ use exonum::{
 
 use crate::{
     model::{self, transactions::*},
-    schema::SchemaImpl,
+    schema::{Repository, SchemaImpl},
     service::ElectionService,
 };
 
@@ -43,7 +43,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
 
         let mut schema = SchemaImpl::new(ctx.service_data());
 
-        if schema.public.participants.get(&addr).is_none() {
+        if !schema.public.participant_repository().has(&addr) {
             schema.create_participant(&addr, arg, &tx_hash);
             Ok(())
         } else {
@@ -60,7 +60,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
 
         let mut schema = SchemaImpl::new(ctx.service_data());
 
-        if schema.public.administrations.get(&from).is_none() {
+        if !schema.public.administration_repository().has(&from) {
             schema.create_administration(&from, &arg.name, &arg.principal_key, &arg.area, &tx_hash);
             Ok(())
         } else {
@@ -73,7 +73,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
 
         let mut schema = SchemaImpl::new(ctx.service_data());
 
-        if schema.public.administrations.get(&issuer).is_none() {
+        if !schema.public.administration_repository().has(&issuer) {
             return Err(Error::AdministrationNotFound.into());
         }
 
@@ -100,11 +100,11 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
         let mut schema = SchemaImpl::new(ctx.service_data());
         let config = schema.config.get().expect("Can't read service config");
 
-        if schema.public.participants.get(&voter).is_none() {
+        if !schema.public.participant_repository().has(&voter) {
             return Err(Error::ParticipantNotFound.into());
         }
 
-        match schema.public.elections.get(&arg.election_id) {
+        match schema.public.election_repository().get(&arg.election_id) {
             None => return Err(Error::ElectionNotFound.into()),
             Some(election) => {
                 let time_schema: exonum_time::TimeSchema<_> = ctx
@@ -131,13 +131,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
             }
         }
 
-        if schema
-            .public
-            .election_votes
-            .get(&arg.election_id)
-            .get(&voter)
-            .is_some()
-        {
+        if schema.public.voted_yet(&arg.election_id, &voter) {
             return Err(Error::VotedYet.into());
         }
 
@@ -152,7 +146,7 @@ impl ElectionInterface<ExecutionContext<'_>> for ElectionService {
         let mut schema = SchemaImpl::new(ctx.service_data());
         let config = schema.config.get().expect("Can't read service config");
 
-        if schema.public.participants.get(&tx_author).is_none() {
+        if !schema.public.participant_repository().has(&tx_author) {
             return Err(Error::ParticipantNotFound.into());
         }
 
