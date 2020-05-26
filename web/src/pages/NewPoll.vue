@@ -69,24 +69,24 @@
               </div>
               <div class="form-group px-2">
                 
-                <label for="start_date" class="control-label">Дата начала голосования:</label>
+                <label for="start-date" class="control-label">Дата начала голосования:</label>
                 
                 <datetime
-                  id="start_date"
-                  v-model="start_date"
-                  :min-datetime="new Date().toString()"
+                  id="start-date"
+                  v-model="startDate"
+                  :min-datetime="now"
                   input-class="form-control"
                   type="datetime"
                 />
               </div>
               <div class="form-group px-2">
                 
-                <label for="finish_date" class="control-label">Дата конца голосования:</label>
+                <label for="finish-date" class="control-label">Дата конца голосования:</label>
                 
                 <datetime
-                  id="finish_date"
-                  v-model="finish_date"
-                  :min-datetime="start_date"
+                  id="finish-date"
+                  v-model="finishDate"
+                  :min-datetime="startDate"
                   input-class="form-control"
                   type="datetime"
                 />
@@ -135,10 +135,10 @@
         isSpinnerVisible: false,
         login: '',
         name: "",
-        start_date: null,
-        finish_date: null,
+        now: new Date().toString(),
+        startDate: null,
+        finishDate: null,
         options: "",
-        //keyPair: {},
         transactions: []
       }
     },
@@ -183,11 +183,11 @@
           return this.$notify("error", "The options is a required field");
         }
 
-        if (!this.start_date) {
+        if (!this.startDate) {
           return this.$notify("error", "The start date is a required field");
         }
 
-        if (!this.finish_date) {
+        if (!this.finishDate) {
           return this.$notify("error", "The finish date is a required field");
         }
 
@@ -196,16 +196,17 @@
         try {
           await this.$blockchain.createNewPoll(this.keyPair, {
             name: this.name,
-            start_date: Date.parse(this.start_date),
-            finish_date: Date.parse(this.finish_date),
+            startDate: Date.parse(this.startDate),
+            finishDate: Date.parse(this.finishDate),
             options
           });
 
-          this.name = "";
-          this.start_date = null;
-          this.finish_date = null;
-          this.options = "";
+          // this.name = "";
+          // this.startDate = null;
+          // this.finishDate = null;
+          // this.options = "";
 
+          this.$notify("success", "Голосование создано");
           this.isSpinnerVisible = false;
         } catch (error) {
           this.isSpinnerVisible = false;
