@@ -4,22 +4,16 @@
 
     <footer class="pb-4 hr">
       <hr class="mt-5 mb-5">
-      <div class="container">
-        <!-- <div class="row">
-          <div class="col-sm-12">
-            <img src="images/exonum.png" width="41" height="36" class="float-left mt-sm-1 mr-3" alt="">
-            <ul class="list-unstyled">
-              <li>Sources on <a href="https://github.com/exonum/cryptocurrency-advanced" target="_blank">GitHub</a></li>
-              <li><a href="https://exonum.com/doc/" target="_blank">Exonum docs</a></li>
-            </ul>
-          </div>
-        </div> -->
-      </div>
+      <div class="container" />
     </footer>
   </div>
 </template>
 
-<style>
+<style lang="scss">
+  @import '~bootstrap/scss/bootstrap.scss';
+  @import '~noty/lib/noty.css';
+  @import '~noty/lib/themes/bootstrap-v4.css';
+
   input:invalid {
     box-shadow: none;
   }
