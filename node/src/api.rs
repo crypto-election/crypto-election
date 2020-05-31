@@ -140,26 +140,31 @@ impl PublicApi {
     ) -> api::Result<(Vec<ElectionGroup>, DateTime<Utc>)> {
         let schema = SchemaImpl::new(state.service_data());
 
-        let addr = CallerAddress::from_key(query.key);
+        let participant_addr = CallerAddress::from_key(query.key);
         let time = Self::get_time(&state)?;
 
         let administrations = schema
             .public
-            .suggested_administrations_for(&addr, time)
+            .suggested_administrations_for(&participant_addr, time)
             .ok_or_else(api::Error::not_found)?;
 
         Ok((
             administrations
                 .take(5)
-                .map(|addr| ElectionGroup {
-                    organization_name: schema.public.administrations.get(&addr).unwrap().name,
+                .map(|administration_addr| ElectionGroup {
+                    organization_name: schema
+                        .public
+                        .administrations
+                        .get(&administration_addr)
+                        .unwrap()
+                        .name,
                     elections: schema
                         .public
-                        .elections_available_at_moment(&addr, time)
+                        .elections_available_at_moment(&administration_addr, time)
                         .map(|it| Box::new(it) as Box<dyn Iterator<Item = _>>)
                         .unwrap_or_else(|| Box::new(std::iter::empty()))
                         .map(|election: Election| {
-                            if schema.public.voted_yet(&election.addr, &addr) {
+                            if schema.public.voted_yet(&election.addr, &participant_addr) {
                                 let results =
                                     schema.public.election_results(&election.addr).unwrap();
                                 (election, true, &results).into()
