@@ -114,6 +114,10 @@
   </div>
 </template>
 
+<style scoped lang="scss">
+  @import '~vue-datetime/dist/vue-datetime.css';
+</style>
+
 <script>
   import { mapState } from 'vuex'
 
@@ -121,7 +125,6 @@
   import Spinner from '../components/Spinner.vue'
 
   import { Datetime } from 'vue-datetime';
-  import 'vue-datetime/dist/vue-datetime.css'
 
   module.exports = {
     components: {
@@ -201,10 +204,10 @@
             options
           });
 
-          // this.name = "";
-          // this.startDate = null;
-          // this.finishDate = null;
-          // this.options = "";
+          this.name = "";
+          this.startDate = null;
+          this.finishDate = null;
+          this.options = "";
 
           this.$notify("success", "Голосование создано");
           this.isSpinnerVisible = false;
