@@ -25,7 +25,7 @@
                         <span>{{ election.dateStart }}</span>
                       </div>
                       <div class="d-flex flex-row">
-                        <strong class="mr-2">Конец:</strong>
+                        <strong class="mr-2">Окончание:</strong>
                         <span>{{ election.dateFinish }}</span>
                       </div>
                       <vue-poll v-bind="election" @addvote="selected => vote(election, selected)" />
@@ -177,9 +177,9 @@
 
           this.isSpinnerVisible = true
 
-          const { participant, transactions } =
-                  await this.$blockchain.getParticipant(this.keyPair.publicKey);
-          const { name, email, phone_number, residence } = participant;
+          const {
+            participant: { name, email, phone_number, residence }, transactions,
+          } = await this.$blockchain.getParticipant(this.keyPair.publicKey);
           
           this.name = name;
           this.email = email;
@@ -189,7 +189,7 @@
           this.transactions = transactions;
 
           const [ electionGroups, date ] =
-                  await this.$blockchain.getSuggestedElections(this.keyPair.publicKey);
+            await this.$blockchain.getSuggestedElections(this.keyPair.publicKey);
           
           this.electionGroups = electionGroups.map(grp => ({
             administrationName: grp.organization_name,
@@ -205,8 +205,17 @@
 
       async vote(election, selected) {
         try {
+          election.loading = true;
           await this.$blockchain.vote(this.keyPair, election.addr, selected.value);
-        } finally {}
+
+          const electionResult = await this.$blockchain.getElectionResults(election.addr);
+          for (const answer of election.answers)
+            answer.votes = electionResult[answer.value];
+          
+          election.showResults = true;
+        } finally {
+          election.loading = false;
+        }
       }
     },
     mounted() {

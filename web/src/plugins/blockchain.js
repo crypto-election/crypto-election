@@ -338,6 +338,11 @@ module.exports = {
         return (await axios.get(path)).data;
       },
 
+      async getElectionResults(electionAddress) {
+        const path = `${SERVICE_PUBLIC_API_PATH}/elections/result?key=${electionAddress}`;
+        return (await axios.get(path)).data;
+      },
+
       async getAdministration(publicKey) {
         const validators = await getValidatorsConsensusKeys()
         const { block_proof, object_proof, history } =
