@@ -29,7 +29,7 @@ artifacts:
   cryptoelection:
     runtime: rust
     name: "crypto-election-node"
-    version: "0.2.1"
+    version: "0.3.0"
     deploy: false
 
 instances:
