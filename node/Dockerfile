@@ -1,4 +1,4 @@
-FROM rust:1.43.1-buster
+FROM rust:1.44.1-buster
 
 ENV ROCKSDB_LIB_DIR=/usr/lib
 ENV SNAPPY_LIB_DIR=/usr/lib/x86_64-linux-gnu
