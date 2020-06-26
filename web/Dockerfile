@@ -1,16 +1,24 @@
-FROM node:13.10.1-buster
-
-WORKDIR /usr/src
-ADD proto/ proto/
-ADD web/package.json web/
+FROM node:13.14.0-buster as build
 
 WORKDIR /usr/src/web
+
+ADD web/package.json ./
 RUN npm install
 
-ADD web .
-RUN npm run build
+ADD proto/ ../proto/
+ADD web/ ./
+
+RUN npm run build-prod
+
+
+FROM node:13.14.0-alpine
+
+WORKDIR /usr/src
+
+COPY --from=build /usr/src/web/dist .
 
 ENV api_host=node
 ENV api_port=8000
+ENV port=8008
 
-CMD npm start -- --port=8008 --api-root=http://$api_host:$api_port
+CMD node server.js --port=$port --api-root=http://$api_host:$api_port

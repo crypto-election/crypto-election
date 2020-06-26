@@ -17,7 +17,17 @@ use crate::model::{
     wrappers, *,
 };
 
+pub use administration_repository::AdministrationRepository;
+pub use election_repository::ElectionRepository;
+pub use participant_repository::ParticipantRepository;
+pub use repository::Repository;
+
 mod iter;
+
+mod administration_repository;
+mod election_repository;
+mod participant_repository;
+mod repository;
 
 binary_value_tuple_impls! {
     #[derive(Debug)]
@@ -54,7 +64,7 @@ pub struct Schema<T: Access> {
     pub participant_location_history:
         Group<T, ParticipantAddress, ProofListIndex<T::Base, TimePositionInfo>>,
     pub administrations: RawProofMapIndex<T::Base, AdministrationAddress, Administration>,
-    pub elections: ProofMapIndex<T::Base, ElectionAddress, Election>,
+    pub elections: RawProofMapIndex<T::Base, ElectionAddress, Election>,
     /// Elections of specific administrations.
     pub administration_elections:
         Group<T, AdministrationAddress, ProofListIndex<T::Base, ElectionAddress>>,
@@ -72,6 +82,18 @@ impl<T: Access> SchemaImpl<T> {
 }
 
 impl<T: Access> Schema<T> {
+    pub fn participant_repository(&self) -> ParticipantRepository<T> {
+        ParticipantRepository::new(&self.participants)
+    }
+
+    pub fn administration_repository(&self) -> AdministrationRepository<T> {
+        AdministrationRepository::new(&self.administrations)
+    }
+
+    pub fn election_repository(&self) -> ElectionRepository<T> {
+        ElectionRepository::new(&self.elections)
+    }
+
     pub fn iter_principals<'a>(
         &'a self,
         key: &'a AdministrationAddress,
@@ -123,33 +145,57 @@ impl<T: Access> Schema<T> {
             })
     }
 
-    pub fn elections_available_on_time_range<'a>(
+    pub fn all_elections_of_administration<'a>(
         &'a self,
         addr: &'a AdministrationAddress,
-        range: impl RangeBounds<DateTime<Utc>> + 'a,
     ) -> Option<impl Iterator<Item = Election> + 'a> {
         self.election_ids_of_administration(addr)
             .map(move |elections| {
                 elections
                     .into_iter()
                     .map(move |id| self.elections.get(&id).unwrap())
-                    .filter(move |election| {
-                        !election.is_cancelled
-                            && (range.contains(&election.start_date)
-                                || range.contains(&election.finish_date))
-                    })
             })
     }
 
-    pub fn active_elections<'a>(
+    fn filter_elections<'a, P>(
         &'a self,
-        address: &'a AdministrationAddress,
-        now: DateTime<Utc>,
+        addr: &'a AdministrationAddress,
+        predicate: P,
+    ) -> Option<impl Iterator<Item = Election> + 'a>
+    where
+        P: FnMut(&Election) -> bool + 'a,
+    {
+        self.all_elections_of_administration(addr)
+            .map(|elections| elections.filter(predicate))
+    }
+
+    pub fn elections_available_on_time_range<'a>(
+        &'a self,
+        addr: &'a AdministrationAddress,
+        range: impl RangeBounds<DateTime<Utc>> + 'a,
     ) -> Option<impl Iterator<Item = Election> + 'a> {
-        self.administrations.get(address).map(|_| {
-            self.elections_available_on_time_range(address, now..=now)
-                .unwrap()
+        self.filter_elections(addr, move |election| {
+            !election.is_cancelled
+                && (range.contains(&election.start_date) || range.contains(&election.finish_date))
         })
+    }
+
+    pub fn elections_available_at_moment<'a>(
+        &'a self,
+        addr: &'a AdministrationAddress,
+        moment: DateTime<Utc>,
+    ) -> Option<impl Iterator<Item = Election> + 'a> {
+        self.filter_elections(addr, move |election| {
+            !election.is_cancelled
+                && ((election.start_date..election.finish_date).contains(&moment))
+        })
+    }
+
+    pub fn voted_yet(&self, election_addr: &ElectionAddress, address: &ParticipantAddress) -> bool {
+        self.election_votes
+            .get(election_addr)
+            .get(address)
+            .is_some()
     }
 
     pub fn available_elections<'a>(
@@ -165,11 +211,15 @@ impl<T: Access> Schema<T> {
         })
     }
 
-    pub fn election_results(&self, election_id: ElectionAddress) -> Option<HashMap<i32, u32>> {
-        self.elections.get(&election_id).map(|e| {
-            let mut sum: HashMap<i32, u32> = e.options.iter().map(|o| (o.id, 0)).collect();
+    pub fn election_results(
+        &self,
+        election_id: &ElectionAddress,
+    ) -> Option<HashMap<ElectionOptionAddress, u32>> {
+        self.elections.get(election_id).map(|e| {
+            let mut sum: HashMap<ElectionOptionAddress, u32> =
+                e.options.iter().map(|o| (o.id, 0)).collect();
             self.election_votes
-                .get(&election_id)
+                .get(election_id)
                 .iter()
                 .for_each(|(_, v)| {
                     if let Some(counter) = sum.get_mut(&v) {
@@ -177,6 +227,52 @@ impl<T: Access> Schema<T> {
                     }
                 });
             sum
+        })
+    }
+
+    pub fn suggested_administrations_for<'a>(
+        &'a self,
+        participant_addr: &'a ParticipantAddress,
+        now: DateTime<Utc>,
+    ) -> Option<impl Iterator<Item = AdministrationAddress> + 'a> {
+        self.participants.get(participant_addr).map(|participant| {
+            let month_ago = now - Duration::days(28);
+            let locations = {
+                let locations_for_last_month: Vec<_> = self
+                    .participant_location_history
+                    .get(&participant.addr)
+                    .iter()
+                    .skip_while(|loc| (loc.0).0 < month_ago)
+                    .map(|loc| (loc.0).1)
+                    .collect();
+                let last_locations = locations_for_last_month.into_iter().rev().take(30);
+
+                let root_administration_addresses = self
+                    .administrations
+                    .values()
+                    .filter(|adm| adm.principal_key.0.is_none())
+                    .map(|adm| adm.addr);
+
+                last_locations
+                    .chain(participant.residence.0)
+                    .chain(root_administration_addresses)
+            };
+
+            let mut picked_administrations: HashMap<AdministrationAddress, u32> = HashMap::new();
+
+            for addr in locations {
+                match picked_administrations.get_mut(&addr) {
+                    Some(counter) => *counter += 1,
+                    None => {
+                        picked_administrations.insert(addr, 1);
+                    }
+                }
+            }
+
+            let mut rated_administrations = Vec::with_capacity(picked_administrations.len());
+            rated_administrations.extend(picked_administrations.into_iter());
+            rated_administrations.sort_by(|(_, rank1), (_, rank2)| rank1.cmp(rank2));
+            rated_administrations.into_iter().map(|(adm, _)| adm)
         })
     }
 }
@@ -272,35 +368,31 @@ where
     pub fn issue_election(
         &mut self,
         name: &str,
+        election_address: ElectionAddress,
         author_key: &AdministrationAddress,
         start_date: &DateTime<Utc>,
         finish_date: &DateTime<Utc>,
         options: &[String],
         transaction: &Hash,
-    ) -> i64 {
-        let election_addr = self.public.elections.keys().max().map_or(0, |i| i + 1);
-
+    ) {
         let election = {
-            let mut history = self.election_history.get(&election_addr);
+            let mut history = self.election_history.get(&election_address);
             history.push(*transaction);
             let history_hash = history.object_hash();
 
             let options: Vec<ElectionOption> = options
                 .iter()
                 .scan(0, |counter, t| {
+                    *counter += 1;
                     Some(ElectionOption {
-                        id: {
-                            let cur_idx = *counter;
-                            *counter += 1;
-                            cur_idx
-                        },
+                        id: *counter,
                         title: t.to_owned(),
                     })
                 })
                 .collect();
 
             Election {
-                addr: election_addr,
+                addr: election_address,
                 name: name.to_owned(),
                 issuer: *author_key,
                 start_date: *start_date,
@@ -312,14 +404,12 @@ where
             }
         };
 
-        self.public.elections.put(&election_addr, election);
+        self.public.elections.put(&election_address, election);
 
         self.public
             .administration_elections
             .get(author_key)
-            .push(election_addr);
-
-        election_addr
+            .push(election_address);
     }
 
     pub fn vote(

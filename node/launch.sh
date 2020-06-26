@@ -34,11 +34,6 @@ do
   sleep 1
 done
 
-# FixMe: Launcher fails to start
-#echo "Deploying of crypto-election service is in progress..."
-#sleep 7
-#python3 -m exonum_launcher -i crypto-election.yml
-
 while true; do
    sleep 300
 done

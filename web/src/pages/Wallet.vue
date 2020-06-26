@@ -4,19 +4,71 @@
 
     <div class="container">
       <div class="row">
-        <div class="col-md-6">
+
+        <div class="col-md-7">
+          <div v-for="{administrationName, elections} of electionGroups"
+               :key="administrationName" class="card mt-5">
+            <div class="card-header">{{ administrationName }}</div>
+            <div class="card-body">
+              <div class="list-group">
+                <div v-for="election of elections" :key="election.addr">
+                  <button :class="{ active: !election.showResults }"
+                          :data-target="'#' + 'elect-card-' + election.addr"
+                          :aria-controls="'elect-card-' + election.addr" type="button"
+                          class="list-group-item list-group-item-action"
+                          data-toggle="collapse" aria-expanded="false"
+                  >{{ election.question }}</button>
+                  <div :id="'elect-card-' + election.addr" class="collapse">
+                    <div :visible="!election.loading" class="card card-body">
+                      <div class="d-flex flex-row">
+                        <strong class="mr-2">Начало:</strong>
+                        <span>{{ election.dateStart }}</span>
+                      </div>
+                      <div class="d-flex flex-row">
+                        <strong class="mr-2">Окончание:</strong>
+                        <span>{{ election.dateFinish }}</span>
+                      </div>
+                      <vue-poll v-bind="election" @addvote="selected => vote(election, selected)" />
+                    </div>
+                    <spinner :visible="election.loading" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-5">
           <div class="card mt-5">
-            <div class="card-header">User summary</div>
+            <div class="card-header">Информация о пользователе</div>
             <ul class="list-group list-group-flush">
               <li class="list-group-item">
                 <div class="row">
-                  <div class="col-sm-3"><strong>Name:</strong></div>
+                  <div class="col-sm-3"><strong>Логин:</strong></div>
                   <div class="col-sm-9">{{ name }}</div>
                 </div>
               </li>
               <li class="list-group-item">
                 <div class="row">
-                  <div class="col-sm-3"><strong>Public key:</strong></div>
+                  <div class="col-sm-3"><strong>Email:</strong></div>
+                  <div class="col-sm-9">{{ email }}</div>
+                </div>
+              </li>
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-3"><strong>Телефон:</strong></div>
+                  <div class="col-sm-9">{{ phone_number }}</div>
+                </div>
+              </li>
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-3"><strong>Район:</strong></div>
+                  <div class="col-sm-9">{{ residence }}</div>
+                </div>
+              </li>
+              <li class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-3"><strong>Публичный ключ:</strong></div>
                   <div class="col-sm-9"><code>{{ keyPair.publicKey }}</code></div>
                 </div>
               </li>
@@ -24,19 +76,19 @@
           </div>
 
           <div class="card mt-5">
-            <div class="card-header">Transactions</div>
+            <div class="card-header">Транзакции</div>
             <ul class="list-group list-group-flush">
               <li class="list-group-item font-weight-bold">
                 <div class="row">
-                  <div class="col-sm-12">Description</div>
+                  <div class="col-sm-12">Описание</div>
                 </div>
               </li>
               <!-- eslint-disable-next-line vue/require-v-for-key -->
-              <li v-for="transaction in reverseTransactions" class="list-group-item">
+              <li v-for="transaction in reverseTransactions" :key="transaction.hash" class="list-group-item">
                 <div class="row">
                   <div class="col-sm-12">
                     <router-link :to="{ name: 'transaction', params: { hash: transaction.hash } }">
-                      <span v-if="transaction.name">Wallet created</span>
+                      <span v-if="transaction.name">Создание кабинета избирателя</span>
                       <span v-else-if="transaction.to && transaction.to === keyPair.publicKey">
                         <strong v-numeral="transaction.amount"/> funds received
                       </span>
@@ -53,79 +105,59 @@
             </ul>
           </div>
         </div>
-        <div class="col-md-6">
-          <div class="card mt-5">
-            <div class="card-header">Add funds</div>
-            <div class="card-body">
-              <form @submit.prevent="addFunds">
-                <div class="form-group">
-                  <label class="d-block">Select amount to be added:</label>
-                  <div v-for="variant in variants" :key="variant.id" class="form-check form-check-inline">
-                    <input :id="variant.id" :value="variant.amount" :checked="amountToAdd == variant.amount" v-model="amountToAdd" class="form-check-input" type="radio">
-                    <label :for="variant.id" class="form-check-label">${{ variant.amount }}</label>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Add funds</button>
-              </form>
-            </div>
-          </div>
-
-          <div class="card mt-5">
-            <div class="card-header">Transfer funds</div>
-            <div class="card-body">
-              <form @submit.prevent="transfer">
-                <div class="form-group">
-                  <label>Receiver:</label>
-                  <input v-model="receiver" type="text" class="form-control" placeholder="Enter public key" required>
-                </div>
-                <div class="form-group">
-                  <label>Amount:</label>
-                  <div class="input-group">
-                    <div class="input-group-prepend">
-                      <div class="input-group-text">$</div>
-                    </div>
-                    <input v-model="amountToTransfer" type="number" class="form-control" placeholder="Enter amount" min="0" required>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary">Transfer funds</button>
-              </form>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
-    <spinner :visible="isSpinnerVisible"/>
+    <spinner :visible="isSpinnerVisible" />
   </div>
 </template>
 
 <script>
+  import moment from 'moment';
+
   import { mapState } from 'vuex'
   import Modal from '../components/Modal.vue'
   import Navbar from '../components/Navbar.vue'
   import Spinner from '../components/Spinner.vue'
+  import VuePoll from 'vue-poll'
+
+  function formatTitle(election) {
+    const
+      dateStart = new Date(election.start_date).toLocaleString("ru"),
+      dateFinish = new Date(election.finish_date).toLocaleString("ru");
+    return '<div class="d-flex w-100 justify-content-between">' +
+              `<h5 class="mb-1">${election.name}</h5>` +
+              `<small class="text-muted">(${dateStart} - ${dateFinish})</small>` +
+            '</div>';
+  }
+
+  function mapElection(election) {
+    const answers = election.options.map(
+      ({ id, title, votes_count }) => ({ value: id, text: title, votes: votes_count, })
+    );
+
+    return {
+      addr: election.addr,
+      question: election.name,
+      answers,
+      showResults: election.is_voted_yet,
+      loading: false,
+      dateStart: moment(election.start_date).fromNow(),
+      dateFinish: moment(election.finish_date).fromNow(),
+      multiple: false,
+    };
+  }
 
   module.exports = {
-    components: {
-      Modal,
-      Navbar,
-      Spinner
-    },
+    components: { Modal, Navbar, Spinner, VuePoll },
     data() {
       return {
-        name: '',
-        balance: 0,
-        amountToAdd: 10,
+        name: '', email: '', phone_number: '', residence: '',
+        electionGroups: [],
         receiver: '',
-        amountToTransfer: '',
         isSpinnerVisible: false,
         transactions: [],
-        variants: [
-          { id: 'ten', amount: 10 },
-          { id: 'fifty', amount: 50 },
-          { id: 'hundred', amount: 100 }
-        ]
-      }
+      };
     },
     computed: Object.assign({
       reverseTransactions() {
@@ -136,67 +168,53 @@
     })),
     methods: {
       async loadUser() {
-        if (this.keyPair === null) {
-          this.$store.commit('logout')
-          this.$router.push({ name: 'home' })
-          return
-        }
-
-        this.isSpinnerVisible = true
-
         try {
-          const { participant, transactions } =
-                  await this.$blockchain.getParticipant(this.keyPair.publicKey)
-          this.name = participant.name
-          this.transactions = transactions
-          this.isSpinnerVisible = false
+          if (this.keyPair === null) {
+            this.$store.commit('logout')
+            this.$router.push({ name: 'home' })
+            return
+          }
+
+          this.isSpinnerVisible = true
+
+          const {
+            participant: { name, email, phone_number, residence }, transactions,
+          } = await this.$blockchain.getParticipant(this.keyPair.publicKey);
+          
+          this.name = name;
+          this.email = email;
+          this.phone_number = phone_number;
+          this.residence = residence;
+
+          this.transactions = transactions;
+
+          const electionGroups =
+            await this.$blockchain.getSuggestedElections(this.keyPair.publicKey);
+          
+          this.electionGroups = electionGroups.map(grp => ({
+            administrationName: grp.organization_name,
+            elections: grp.elections.map(mapElection)
+          }));
+          
         } catch (error) {
-          this.isSpinnerVisible = false
           this.$notify('error', error.toString())
+        } finally {
+          this.isSpinnerVisible = false
         }
       },
 
-      async addFunds() {
-        this.isSpinnerVisible = true
-
-        const seed = this.$blockchain.generateSeed()
-
+      async vote(election, selected) {
         try {
-          await this.$blockchain.addFunds(this.keyPair, this.amountToAdd, seed)
-          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
-          this.balance = data.wallet.balance
-          this.transactions = data.transactions
-          this.isSpinnerVisible = false
-          this.$notify('success', 'Add funds transaction has been written into the blockchain')
-        } catch (error) {
-          this.isSpinnerVisible = false
-          this.$notify('error', error.toString())
-        }
-      },
+          election.loading = true;
+          await this.$blockchain.vote(this.keyPair, election.addr, selected.value);
 
-      async transfer() {
-        if (!this.$validateHex(this.receiver)) {
-          return this.$notify('error', 'Invalid public key is passed')
-        }
-
-        if (this.receiver === this.keyPair.publicKey) {
-          return this.$notify('error', 'Can not transfer funds to yourself')
-        }
-
-        this.isSpinnerVisible = true
-
-        const seed = this.$blockchain.generateSeed()
-
-        try {
-          await this.$blockchain.transfer(this.keyPair, this.receiver, this.amountToTransfer, seed)
-          const data = await this.$blockchain.getParticipant(this.keyPair.publicKey)
-          this.balance = data.wallet.balance
-          this.transactions = data.transactions
-          this.isSpinnerVisible = false
-          this.$notify('success', 'Transfer transaction has been written into the blockchain')
-        } catch (error) {
-          this.isSpinnerVisible = false
-          this.$notify('error', error.toString())
+          const electionResult = await this.$blockchain.getElectionResults(election.addr);
+          for (const answer of election.answers)
+            answer.votes = electionResult[answer.value];
+          
+          election.showResults = true;
+        } finally {
+          election.loading = false;
         }
       }
     },

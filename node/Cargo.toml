@@ -1,6 +1,6 @@
 [package]
 name = "crypto-election-node"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Nikita Bibik <osbib2@gmail.com>"]
 edition = "2018"
 

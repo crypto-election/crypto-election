@@ -20,60 +20,7 @@
                     required
                   >
                 </div>
-                <!--Email-->
-                <div class="form-group">
-                  <label for="email" class="control-label">Email:</label>
-                  <input
-                    id="email"
-                    v-model.trim="email"
-                    type="email"
-                    class="form-control"
-                    placeholder="Введите email"
-                    maxlength="260"
-                    required
-                  >
-                </div>
-                <!--Phone-->
-                <div class="form-group">
-                  <label for="phone" class="control-label">Телефон:</label>
-                  <input
-                    id="phone"
-                    v-model.trim="phone_number"
-                    type="tel"
-                    pattern="80[0-9]{9}"
-                    class="form-control"
-                    placeholder="80XXXXXXXXX"
-                    maxlength="260"
-                    required
-                  >
-                </div>
-                <!--Residence-->
-                <div class="form-group">
-                  <label for="residence" class="control-label">Район:</label>
-                  <!--ToDo: Добавить treeselect (https://vue-treeselect.js.org/)-->
-                  <input
-                    id="residence"
-                    v-model.trim="residence"
-                    type="text"
-                    class="form-control"
-                    placeholder="Введите вашу резиденцию (?)"
-                    maxlength="260"
-                  >
-                </div>
-                <!--Pass_code-->
-                <div class="form-group">
-                  <label for="pass_code" class="control-label">Паспорт:</label>
-                  <input
-                    id="pass_code"
-                    v-model.trim="pass_code"
-                    type="text"
-                    class="form-control"
-                    placeholder="Введите данные паспорта"
-                    maxlength="260"
-                    required
-                  >
-                </div>
-                <button type="submit" class="btn btn-lg btn-block btn-primary">Регистрация</button>
+                <button type="submit" class="btn btn-lg btn-block btn-primary">Log in</button>
               </form>
             </tab>
             <tab title="Log in">
@@ -135,10 +82,8 @@ module.exports = {
   data() {
     return {
       name: "",
-      email: "",
-      phone_number: "",
-      residence: "",
-      pass_code: "",
+      principal_key: '',
+      area: { exterior: [], interior: [] },
       secretKey: "",
       keyPair: {},
       isModalVisible: false,
@@ -159,7 +104,7 @@ module.exports = {
       });
 
       this.$nextTick(function() {
-        this.$router.push({ name: "user" });
+        this.$router.push({ name: "newpoll" });
       });
     },
 
@@ -167,30 +112,18 @@ module.exports = {
       if (!this.name) {
         return this.$notify("error", "The name is a required field");
       }
-      if (!this.email) {
-        return this.$notify("error", "The email is a required field");
-      }
-      if (!this.phone_number) {
-        return this.$notify("error", "The phone number is a required field");
-      }
 
       this.isSpinnerVisible = true;
       this.keyPair = this.$blockchain.generateKeyPair();
 
       try {
-        await this.$blockchain.createParticipant(this.keyPair, {
+        await this.$blockchain.createAdministration(this.keyPair, {
           name: this.name,
-          email: this.email,
-          phone_number: this.phone_number,
-          //residence: this.residence,
-          pass_code: this.pass_code
+          //principal_key: this.principal_key,
+          //area: this.area
         });
 
         this.name = "";
-        this.email = "";
-        this.phone_number = "";
-        this.residence = "";
-        this.pass_code = "";
         this.isSpinnerVisible = false;
         this.isModalVisible = true;
       } catch (error) {
@@ -209,7 +142,7 @@ module.exports = {
       this.$store.commit("login", this.keyPair);
 
       this.$nextTick(function() {
-        this.$router.push({ name: "user" });
+        this.$router.push({ name: "newpoll" });
       });
     }
   }

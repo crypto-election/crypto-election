@@ -1,11 +1,12 @@
-const express = require('express');
-const proxy = require('http-proxy-middleware');
+import express from 'express';
+import proxy from 'http-proxy-middleware';
+import parseArgs from 'yargs-parser';
 
 // Initialize application
 const app = express();
 
 // Get app params
-const argv = require('yargs-parser')(process.argv.slice(2));
+const argv = parseArgs(process.argv.slice(2));
 const port = argv.port;
 const apiRoot = argv.apiRoot;
 
@@ -18,7 +19,7 @@ if (typeof apiRoot === 'undefined') {
 }
 
 // Set path to static files
-app.use(express.static(__dirname + '/'));
+app.use(express.static(__dirname + '/front'));
 
 // Proxy middleware options
 const apiProxy = proxy({

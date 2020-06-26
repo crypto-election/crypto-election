@@ -2,12 +2,12 @@ Dockerfile
 .dockerignore
 target
 **/target
-**/Dockerfile
+**/*Dockerfile
 **/.dockerignore
 
 **/node_modules
 **/dist
-**/proto/*
+web/proto/*
 
 .git
 .gitignore

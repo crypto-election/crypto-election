@@ -10,7 +10,9 @@ RUN apt-get update; \
 
 WORKDIR /usr/src
 
-RUN git clone https://github.com/exonum/exonum-launcher && cd exonum-launcher \
+# Up to release 0.2.0: https://github.com/exonum/exonum-launcher/releases/tag/v0.2.0
+RUN git clone -n https://github.com/exonum/exonum-launcher && cd exonum-launcher \
+    && git checkout 0cdd505bd0bf717f618012689293f61d9b675bf0 \
     && pip3 install -r requirements.txt && pip3 install -e .
 
 COPY cfg/crypto-election.yml .

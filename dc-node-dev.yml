@@ -1,0 +1,15 @@
+# Configuration for frontend development
+
+version: "3.7"
+services: 
+  node:
+    build: { context: ., dockerfile: node/dev.Dockerfile }
+    cap_add: [ SYS_PTRACE ]
+    links: [ exonum_launcher ]
+    ports: [ "8000:8000" ]
+  exonum_launcher:
+    image: integrer/exonum-launcher:0.3.0-exonum-1.0.0-rc.3
+  web:
+    build: { context: ., dockerfile: web/Dockerfile }
+    links: [ node ]
+    ports: [ "8008:8008" ]

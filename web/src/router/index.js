@@ -6,6 +6,8 @@ import BlockchainPage from '../pages/Blockchain.vue'
 import BlockPage from '../pages/Block.vue'
 import TransactionPage from '../pages/Transaction.vue'
 import Votes from '../pages/Votes.vue'
+import NewPoll from '../pages/NewPoll.vue'
+import AuthAdmin from '../pages/AuthAdmin.vue'
 
 Vue.use(Router)
 
@@ -15,6 +17,16 @@ export default new Router({
       path: '/',
       name: 'home',
       component: AuthPage
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: AuthAdmin
+    },
+    {
+      path: '/newpoll',
+      name: 'newpoll',
+      component: NewPoll
     },
     {
       path: '/user',

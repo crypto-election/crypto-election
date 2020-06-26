@@ -34,21 +34,53 @@
               </li>
             </ul>
           </div>
-
-          <div class="card-header mt-5">Список голосований</div>
-          <!-- As a link -->
-          <nav class="nav flex-column">
-            <button
-              v-for="(navOption, index) in options"
-              :key="navOption.question"
-              class="btn btn-primary"
-              type="submit"
-              @click="choiseFunc(index)"
-            >{{ navOption.question }}
-            </button>
-          </nav>
-        </div>
+          <!--Транзакции-->
+          <div class="card mt-5">
+            <div class="card-header">Транзакция</div>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item font-weight-bold">
+                <div class="row">
+                  <div class="col-sm-12">Описание</div>
+                </div>
+              </li>
+              <!-- eslint-disable-next-line vue/require-v-for-key -->
+              <li v-for="transaction in reverseTransactions" class="list-group-item">
+                <div class="row">
+                  <div class="col-sm-12">
+                    <router-link :to="{ name: 'transaction', params: { hash: transaction.hash } }">
+                      <span v-if="transaction.name">Избирательный аккаунт создан</span>
+                      <span v-else-if="transaction.to && transaction.to === keyPair.publicKey">
+                        <strong v-numeral="transaction.amount"/> funds received
+                      </span>
+                      <span v-else-if="transaction.to">
+                        <strong v-numeral="transaction.amount"/> funds sent
+                      </span>
+                      <span v-else>
+                        <strong v-numeral="transaction.amount"/> funds added
+                      </span>
+                    </router-link>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div> 
         <div class="col-md-6">
+          <div class="card mt-5">
+            <div class="card-header">Список голосований</div>
+            <!-- As a link -->
+            <nav class="nav flex-column">
+              <button
+                v-for="(navOption, index) in options"
+                :key="navOption.question"
+                class="btn btn-primary"
+                type="submit"
+                @click="choiseFunc(index)"
+              >{{ navOption.question }}
+              </button>
+            </nav>
+          </div>
+        
           <div class="card mt-5">
             <div class="card-header">Голосование</div>
             <div class="col-12">

@@ -1,4 +1,4 @@
-use std::{convert::{AsMut, AsRef}};
+use std::convert::{AsMut, AsRef};
 
 use serde::{Deserialize, Serialize};
 
@@ -65,7 +65,7 @@ impl ProtobufConvert for OptionalContainer<Hash> {
         if pb.has_value() {
             let v = Hash::from_pb(pb.get_value().to_owned())?;
             if v != Hash::zero() {
-                return Ok(Self(Some(v)))
+                return Ok(Self(Some(v)));
             }
         }
         Ok(Self(None))
@@ -91,7 +91,7 @@ impl ProtobufConvert for OptionalContainer<Address> {
         if pb.has_value() {
             let v = Address::from_pb(pb.get_value().to_owned())?;
             if v.as_ref() != Hash::zero().as_ref() {
-                return Ok(Self(Some(v)))
+                return Ok(Self(Some(v)));
             }
         }
         Ok(Self(None))

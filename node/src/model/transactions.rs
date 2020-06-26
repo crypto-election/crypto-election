@@ -4,7 +4,7 @@ use anyhow as failure;
 use exonum_derive::{BinaryValue, ObjectHash};
 use exonum_proto::ProtobufConvert;
 
-use super::{geo, wrappers::OptionalContainer, AdministrationAddress};
+use super::{geo, wrappers::OptionalContainer, AdministrationAddress, ElectionAddress};
 use crate::proto;
 
 /// Election configuration parameters.
@@ -36,6 +36,7 @@ pub struct CreateAdministration {
 #[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
 #[protobuf_convert(source = "proto::IssueElection", serde_pb_convert)]
 pub struct IssueElection {
+    pub addr: ElectionAddress,
     pub name: String,
     pub start_date: DateTime<Utc>,
     pub finish_date: DateTime<Utc>,
@@ -45,9 +46,9 @@ pub struct IssueElection {
 #[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
 #[protobuf_convert(source = "proto::Vote", serde_pb_convert)]
 pub struct Vote {
-    pub election_id: i64,
+    pub election_id: ElectionAddress,
     pub option_id: i32,
-    pub seed: i64,
+    pub seed: u64,
 }
 
 #[derive(Clone, Debug, ProtobufConvert, BinaryValue, ObjectHash)]
@@ -55,5 +56,5 @@ pub struct Vote {
 pub struct SubmitLocation {
     pub position: geo::Coordinate,
     pub date: DateTime<Utc>,
-    // ToDo: add seed field
+    pub seed: u64,
 }
