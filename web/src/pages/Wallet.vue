@@ -188,7 +188,7 @@
 
           this.transactions = transactions;
 
-          const [ electionGroups, date ] =
+          const electionGroups =
             await this.$blockchain.getSuggestedElections(this.keyPair.publicKey);
           
           this.electionGroups = electionGroups.map(grp => ({
